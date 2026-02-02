@@ -43,3 +43,6 @@ next-env.d.ts
 # database
 *.db
 *.db-journal
+
+# Sample template folder (resources already copied to public/)
+sample/
