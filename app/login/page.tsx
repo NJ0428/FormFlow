@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -110,9 +111,9 @@ export default function LoginPage() {
           <div className="mt-8 text-center">
             <p className="text-gray-600 dark:text-gray-300">
               계정이 없으신가요?{' '}
-              <a href="/register" className="text-purple-600 hover:text-purple-700 font-medium">
+              <Link href="/register" className="text-purple-600 hover:text-purple-700 font-medium">
                 회원가입
-              </a>
+              </Link>
             </p>
           </div>
         </div>
