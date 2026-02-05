@@ -2,21 +2,45 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, getUserById } from '@/lib/auth';
 import db from '@/lib/db';
 
+// 공개 목록 - 인증 없이 모든 설문조사 목록 반환
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('auth-token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+    const { searchParams } = new URL(request.url);
+    const myOnly = searchParams.get('my') === 'true';
+
+    // 내 설문조사만 가져오기
+    if (myOnly) {
+      const token = request.cookies.get('auth-token')?.value;
+      if (!token) {
+        return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+      }
+
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        return NextResponse.json({ error: '유효하지 않은 토큰입니다.' }, { status: 401 });
+      }
+
+      const forms = db.prepare(
+        `SELECT f.*, u.name as author_name,
+          (SELECT COUNT(*) FROM responses WHERE form_id = f.id) as response_count
+        FROM forms f
+        LEFT JOIN users u ON f.user_id = u.id
+        WHERE f.user_id = ?
+        ORDER BY f.created_at DESC`
+      ).all(decoded.id);
+
+      return NextResponse.json({ forms });
     }
 
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: '유효하지 않은 토큰입니다.' }, { status: 401 });
-    }
-
+    // 전체 공개 목록
     const forms = db.prepare(
-      'SELECT * FROM forms WHERE user_id = ? ORDER BY created_at DESC'
-    ).all(decoded.id);
+      `SELECT f.*, u.name as author_name,
+        (SELECT COUNT(*) FROM responses WHERE form_id = f.id) as response_count
+      FROM forms f
+      LEFT JOIN users u ON f.user_id = u.id
+      WHERE f.is_open = 1
+      ORDER BY f.created_at DESC`
+    ).all();
 
     return NextResponse.json({ forms });
   } catch (error) {

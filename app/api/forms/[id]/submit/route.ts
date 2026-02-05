@@ -13,6 +13,11 @@ export async function POST(
       return NextResponse.json({ error: '폼을 찾을 수 없습니다.' }, { status: 404 });
     }
 
+    // Check if form is open
+    if (form.is_open === 0) {
+      return NextResponse.json({ error: '마감된 설문조사입니다.' }, { status: 400 });
+    }
+
     const { answers } = await request.json();
 
     const result = db.prepare(
@@ -25,9 +30,11 @@ export async function POST(
       'INSERT INTO answers (response_id, question_id, answer) VALUES (?, ?, ?)'
     );
 
-    if (answers && Array.isArray(answers)) {
-      answers.forEach((a: any) => {
-        insertAnswer.run(responseId, a.questionId, a.answer);
+    // answers is an object: { questionId: answer }
+    if (answers && typeof answers === 'object') {
+      Object.entries(answers).forEach(([questionId, answer]) => {
+        const answerValue = Array.isArray(answer) ? JSON.stringify(answer) : String(answer);
+        insertAnswer.run(responseId, parseInt(questionId), answerValue);
       });
     }
 

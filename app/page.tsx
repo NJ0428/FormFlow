@@ -57,6 +57,9 @@ export default function Home() {
                           <a className="page-scroll active" href="#home">Home</a>
                         </li>
                         <li className="nav-item">
+                          <a className="page-scroll" onClick={() => router.push('/survey')}>설문조사</a>
+                        </li>
+                        <li className="nav-item">
                           <a className="page-scroll" href="#feature">Feature</a>
                         </li>
                         <li className="nav-item">
@@ -87,13 +90,23 @@ export default function Home() {
                     FormFlow로 직관적이고 강력한 설문조사를 만들고 관리할 수 있습니다.
                     드래그앤드롭으로 쉽게 설문조사를 생성하고, 실시간으로 응답을 분석하세요.
                   </p>
-                  <button
-                    onClick={() => router.push('/survey/create')}
-                    className="button button-lg radius-50 wow fadeInUp"
-                    data-wow-delay=".6s"
-                  >
-                    시작하기 <i className="lni lni-chevron-right"></i>
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => router.push('/survey')}
+                      className="button button-lg radius-50 wow fadeInUp"
+                      data-wow-delay=".6s"
+                    >
+                      설문조사 보기 <i className="lni lni-chevron-right"></i>
+                    </button>
+                    <button
+                      onClick={() => router.push('/survey/create')}
+                      className="button button-lg radius-50 wow fadeInUp"
+                      data-wow-delay=".6s"
+                      style={{ background: '#6366f1' }}
+                    >
+                      설문조사 만들기 <i className="lni lni-chevron-right"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="col-lg-6 align-self-end">
@@ -290,9 +303,10 @@ export default function Home() {
                 <div className="footer-widget wow fadeInUp" data-wow-delay=".4s">
                   <h6>서비스</h6>
                   <ul className="links">
+                    <li><a onClick={() => router.push('/survey')}>설문조사 게시판</a></li>
+                    <li><a onClick={() => router.push('/survey/create')}>설문조사 만들기</a></li>
                     <li><a onClick={() => router.push('/login')}>로그인</a></li>
                     <li><a onClick={() => router.push('/register')}>회원가입</a></li>
-                    <li><a onClick={() => router.push('/dashboard')}>대시보드</a></li>
                   </ul>
                 </div>
               </div>
