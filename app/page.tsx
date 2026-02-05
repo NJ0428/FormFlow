@@ -67,7 +67,7 @@ export default function Home() {
 
                     <div className="header-action d-flex">
                       <button onClick={() => router.push('/login')} className="btn btn-sm">로그인</button>
-                      <button onClick={() => router.push('/register')} className="btn btn-sm btn-primary">시작하기</button>
+                      <button onClick={() => router.push('/survey/create')} className="btn btn-sm btn-primary">시작하기</button>
                     </div>
                   </nav>
                 </div>
@@ -88,7 +88,7 @@ export default function Home() {
                     드래그앤드롭으로 쉽게 설문조사를 생성하고, 실시간으로 응답을 분석하세요.
                   </p>
                   <button
-                    onClick={() => router.push('/register')}
+                    onClick={() => router.push('/survey/create')}
                     className="button button-lg radius-50 wow fadeInUp"
                     data-wow-delay=".6s"
                   >
@@ -236,7 +236,7 @@ export default function Home() {
                   </li>
                 </ul>
                 <button
-                  onClick={() => router.push('/register')}
+                  onClick={() => router.push('/survey/create')}
                   className="button button-lg radius-10 wow fadeInUp"
                   data-wow-delay=".5s"
                 >

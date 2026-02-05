@@ -1,0 +1,350 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+interface Question {
+  id: string;
+  type: 'text' | 'multiple' | 'single' | 'rating';
+  title: string;
+  options?: string[];
+  required: boolean;
+}
+
+export default function CreateSurveyPage() {
+  const router = useRouter();
+  const [surveyTitle, setSurveyTitle] = useState('');
+  const [surveyDescription, setSurveyDescription] = useState('');
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const addQuestion = (type: Question['type']) => {
+    const newQuestion: Question = {
+      id: Date.now().toString(),
+      type,
+      title: '',
+      options: type === 'multiple' || type === 'single' ? ['', ''] : undefined,
+      required: false,
+    };
+    setQuestions([...questions, newQuestion]);
+  };
+
+  const updateQuestion = (id: string, updates: Partial<Question>) => {
+    setQuestions(questions.map(q => q.id === id ? { ...q, ...updates } : q));
+  };
+
+  const deleteQuestion = (id: string) => {
+    setQuestions(questions.filter(q => q.id !== id));
+  };
+
+  const addOption = (questionId: string) => {
+    setQuestions(questions.map(q => {
+      if (q.id === questionId && q.options) {
+        return { ...q, options: [...q.options, ''] };
+      }
+      return q;
+    }));
+  };
+
+  const updateOption = (questionId: string, optionIndex: number, value: string) => {
+    setQuestions(questions.map(q => {
+      if (q.id === questionId && q.options) {
+        const newOptions = [...q.options];
+        newOptions[optionIndex] = value;
+        return { ...q, options: newOptions };
+      }
+      return q;
+    }));
+  };
+
+  const deleteOption = (questionId: string, optionIndex: number) => {
+    setQuestions(questions.map(q => {
+      if (q.id === questionId && q.options && q.options.length > 1) {
+        return { ...q, options: q.options.filter((_, i) => i !== optionIndex) };
+      }
+      return q;
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!surveyTitle.trim()) {
+      alert('설문조사 제목을 입력해주세요.');
+      return;
+    }
+    if (questions.length === 0) {
+      alert('최소 한 개의 질문을 추가해주세요.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/forms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: surveyTitle,
+          description: surveyDescription,
+          questions,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        router.push(`/survey/${data.id}`);
+      } else {
+        const error = await response.json();
+        alert(error.error || '설문조사 생성에 실패했습니다.');
+      }
+    } catch (err) {
+      alert('서버 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+      {/* Header */}
+      <header className="bg-white dark:bg-gray-800 shadow-sm">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div
+              className="flex items-center gap-2 cursor-pointer"
+              onClick={() => router.push('/')}
+            >
+              <h1 className="text-2xl font-bold text-purple-600">FormFlow</h1>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push('/login')}
+                className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
+              >
+                로그인
+              </button>
+              <button
+                onClick={() => router.push('/register')}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+              >
+                회원가입
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Survey Header */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-6">
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  설문조사 제목 *
+                </label>
+                <input
+                  id="title"
+                  type="text"
+                  value={surveyTitle}
+                  onChange={(e) => setSurveyTitle(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white transition"
+                  placeholder="예: 고객 만족도 조사"
+                />
+              </div>
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  설문조사 설명
+                </label>
+                <textarea
+                  id="description"
+                  value={surveyDescription}
+                  onChange={(e) => setSurveyDescription(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white transition resize-none"
+                  placeholder="이 설문조사의 목적과 내용을 설명해주세요."
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Add Question Buttons */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">질문 추가</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <button
+                onClick={() => addQuestion('text')}
+                className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
+              >
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">주관식</span>
+              </button>
+              <button
+                onClick={() => addQuestion('single')}
+                className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
+              >
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">단일 선택</span>
+              </button>
+              <button
+                onClick={() => addQuestion('multiple')}
+                className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
+              >
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">복수 선택</span>
+              </button>
+              <button
+                onClick={() => addQuestion('rating')}
+                className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
+              >
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">별점</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Questions List */}
+          {questions.map((question, index) => (
+            <div key={question.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 mb-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full font-semibold">
+                    {index + 1}
+                  </span>
+                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {question.type === 'text' && '주관식'}
+                    {question.type === 'single' && '단일 선택'}
+                    {question.type === 'multiple' && '복수 선택'}
+                    {question.type === 'rating' && '별점'}
+                  </span>
+                </div>
+                <button
+                  onClick={() => deleteQuestion(question.id)}
+                  className="text-red-500 hover:text-red-700 p-1"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <input
+                    type="text"
+                    value={question.title}
+                    onChange={(e) => updateQuestion(question.id, { title: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white transition"
+                    placeholder="질문을 입력하세요"
+                  />
+                </div>
+
+                {(question.type === 'single' || question.type === 'multiple') && question.options && (
+                  <div className="space-y-2">
+                    {question.options.map((option, optionIndex) => (
+                      <div key={optionIndex} className="flex items-center gap-2">
+                        <span className="text-gray-400">
+                          {question.type === 'single' ? (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                          )}
+                        </span>
+                        <input
+                          type="text"
+                          value={option}
+                          onChange={(e) => updateOption(question.id, optionIndex, e.target.value)}
+                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white transition"
+                          placeholder={`옵션 ${optionIndex + 1}`}
+                        />
+                        {question.options && question.options.length > 1 && (
+                          <button
+                            onClick={() => deleteOption(question.id, optionIndex)}
+                            className="text-red-500 hover:text-red-700 p-1"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => addOption(question.id)}
+                      className="text-purple-600 hover:text-purple-700 text-sm font-medium flex items-center gap-1 mt-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      옵션 추가
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`required-${question.id}`}
+                    checked={question.required}
+                    onChange={(e) => updateQuestion(question.id, { required: e.target.checked })}
+                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                  />
+                  <label htmlFor={`required-${question.id}`} className="text-sm text-gray-700 dark:text-gray-300">
+                    필수 응답
+                  </label>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Action Buttons */}
+          {questions.length > 0 && (
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => router.push('/')}
+                className="px-6 py-3 border border-gray-300 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    생성 중...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    설문조사 생성
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
