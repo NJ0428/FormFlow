@@ -188,8 +188,8 @@ export default function SurveyListPage() {
           </div>
         </div>
 
-        {/* Survey List */}
-        <div className="max-w-4xl mx-auto space-y-4">
+        {/* Survey List - Board Style */}
+        <div className="max-w-6xl mx-auto">
           {filteredForms.length === 0 ? (
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-12 text-center">
               <svg className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,69 +214,73 @@ export default function SurveyListPage() {
               )}
             </div>
           ) : (
-            filteredForms.map((form) => (
-              <div
-                key={form.id}
-                onClick={() => router.push(`/survey/${form.id}`)}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition-all duration-200 border-2 border-transparent hover:border-purple-300 dark:hover:border-purple-700"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    {/* Title and Status */}
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+              {/* Table Header */}
+              <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                <div className="col-span-1 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">번호</div>
+                <div className="col-span-5 text-sm font-semibold text-gray-600 dark:text-gray-300">제목</div>
+                <div className="col-span-2 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">작성자</div>
+                <div className="col-span-2 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">작성일</div>
+                <div className="col-span-1 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">참여</div>
+                <div className="col-span-1 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">상태</div>
+              </div>
+
+              {/* Table Body */}
+              {filteredForms.map((form, index) => (
+                <div
+                  key={form.id}
+                  onClick={() => router.push(`/survey/${form.id}`)}
+                  className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-gray-100 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+                >
+                  {/* Number */}
+                  <div className="col-span-1 text-center text-sm text-gray-500 dark:text-gray-400">
+                    {filteredForms.length - index}
+                  </div>
+
+                  {/* Title */}
+                  <div className="col-span-5">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition truncate">
                         {form.title}
                       </h3>
-                      {form.is_open === 1 ? (
-                        <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded-full">
-                          진행중
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-full">
-                          마감
+                      {form.description && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500 truncate">
+                          {form.description}
                         </span>
                       )}
                     </div>
-
-                    {/* Description */}
-                    {form.description && (
-                      <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-                        {form.description}
-                      </p>
-                    )}
-
-                    {/* Meta Info */}
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span>{form.author_name || '익명'}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>{formatDate(form.created_at)}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <span>{form.response_count}명 참여</span>
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Arrow Icon */}
-                  <div className="flex-shrink-0">
-                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                  {/* Author */}
+                  <div className="col-span-2 text-center text-sm text-gray-600 dark:text-gray-400">
+                    {form.author_name || '익명'}
+                  </div>
+
+                  {/* Date */}
+                  <div className="col-span-2 text-center text-sm text-gray-600 dark:text-gray-400">
+                    {formatDate(form.created_at)}
+                  </div>
+
+                  {/* Response Count */}
+                  <div className="col-span-1 text-center text-sm text-gray-600 dark:text-gray-400">
+                    {form.response_count}
+                  </div>
+
+                  {/* Status */}
+                  <div className="col-span-1 text-center">
+                    {form.is_open === 1 ? (
+                      <span className="inline-block px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded">
+                        진행중
+                      </span>
+                    ) : (
+                      <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded">
+                        마감
+                      </span>
+                    )}
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       </div>
