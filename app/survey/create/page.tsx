@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Question {
@@ -11,12 +11,59 @@ interface Question {
   required: boolean;
 }
 
+interface User {
+  id: number;
+  email: string;
+  name: string | null;
+}
+
 export default function CreateSurveyPage() {
   const router = useRouter();
   const [surveyTitle, setSurveyTitle] = useState('');
   const [surveyDescription, setSurveyDescription] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      } else {
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
+      router.push('/login');
+    } finally {
+      setCheckingAuth(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      setUser(null);
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-purple-600 border-opacity-75"></div>
+      </div>
+    );
+  }
 
   const addQuestion = (type: Question['type']) => {
     const newQuestion: Question = {
@@ -117,18 +164,34 @@ export default function CreateSurveyPage() {
               <h1 className="text-2xl font-bold text-purple-600">FormFlow</h1>
             </div>
             <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.push('/login')}
-                className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
-              >
-                로그인
-              </button>
-              <button
-                onClick={() => router.push('/register')}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
-              >
-                회원가입
-              </button>
+              {user ? (
+                <>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    {user.name || user.email}님
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                  >
+                    로그아웃
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => router.push('/login')}
+                    className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
+                  >
+                    로그인
+                  </button>
+                  <button
+                    onClick={() => router.push('/register')}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                  >
+                    회원가입
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

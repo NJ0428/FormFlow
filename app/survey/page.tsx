@@ -13,16 +13,46 @@ interface Form {
   is_open: number;
 }
 
+interface User {
+  id: number;
+  email: string;
+  name: string | null;
+}
+
 export default function SurveyListPage() {
   const router = useRouter();
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'closed'>('all');
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     fetchForms();
+    fetchUser();
   }, []);
+
+  const fetchUser = async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      setUser(null);
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   const fetchForms = async () => {
     try {
@@ -99,12 +129,34 @@ export default function SurveyListPage() {
               <span className="text-gray-600 dark:text-gray-300">설문조사 게시판</span>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => router.push('/login')}
-                className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-              >
-                로그인
-              </button>
+              {user ? (
+                <>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    {user.name || user.email}님
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                  >
+                    로그아웃
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => router.push('/login')}
+                    className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                  >
+                    로그인
+                  </button>
+                  <button
+                    onClick={() => router.push('/register')}
+                    className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                  >
+                    회원가입
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => router.push('/survey/create')}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"

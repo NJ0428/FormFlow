@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userId = createUser(email, password, name);
+    const userId = await createUser(email, password, name);
     
     return NextResponse.json({
       message: '회원가입이 완료되었습니다.',
