@@ -26,7 +26,7 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        router.push('/dashboard');
+        router.push('/survey');
       } else {
         setError(data.error || '로그인에 실패했습니다.');
       }

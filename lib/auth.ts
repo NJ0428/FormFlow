@@ -39,8 +39,8 @@ export function verifyToken(token: string): User | null {
   }
 }
 
-export function createUser(email: string, password: string, name?: string): number {
-  const hashedPassword = hashPassword(password);
+export async function createUser(email: string, password: string, name?: string): Promise<number> {
+  const hashedPassword = await hashPassword(password);
   const result = db.prepare(
     'INSERT INTO users (email, password, name) VALUES (?, ?, ?)'
   ).run(email, hashedPassword, name || null);
@@ -55,13 +55,13 @@ export function getUserById(id: number): any {
   return db.prepare('SELECT id, email, name FROM users WHERE id = ?').get(id);
 }
 
-export function authenticateUser(email: string, password: string): AuthUser | null {
+export async function authenticateUser(email: string, password: string): Promise<AuthUser | null> {
   const user = getUserByEmail(email);
   if (!user) return null;
-  
-  const isValid = verifyPassword(password, user.password);
+
+  const isValid = await verifyPassword(password, user.password);
   if (!isValid) return null;
-  
+
   const token = generateToken({ id: user.id, email: user.email, name: user.name });
   return {
     id: user.id,
