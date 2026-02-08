@@ -70,3 +70,14 @@ export async function authenticateUser(email: string, password: string): Promise
     token
   };
 }
+
+export function updateUserProfile(userId: number, name: string): boolean {
+  const result = db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, userId);
+  return result.changes > 0;
+}
+
+export async function updateUserPassword(userId: number, newPassword: string): Promise<boolean> {
+  const hashedPassword = await hashPassword(newPassword);
+  const result = db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedPassword, userId);
+  return result.changes > 0;
+}
