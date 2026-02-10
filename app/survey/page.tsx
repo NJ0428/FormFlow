@@ -103,10 +103,20 @@ export default function SurveyListPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-purple-600 border-opacity-75 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-300">로딩 중...</p>
+      <div className="preloader">
+        <div className="loader">
+          <div className="spinner">
+            <div className="spinner-container">
+              <div className="spinner-rotator">
+                <div className="spinner-left">
+                  <div className="spinner-circle"></div>
+                </div>
+                <div className="spinner-right">
+                  <div className="spinner-circle"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -115,227 +125,233 @@ export default function SurveyListPage() {
   const filteredForms = getFilteredForms();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div
-              className="flex items-center gap-2 cursor-pointer"
-              onClick={() => router.push('/')}
-            >
-              <h1 className="text-2xl font-bold text-purple-600">FormFlow</h1>
-              <span className="text-gray-400">/</span>
-              <span className="text-gray-600 dark:text-gray-300">설문조사 게시판</span>
-            </div>
-            <div className="flex items-center gap-3">
-              {user ? (
-                <>
-                  <span className="text-sm text-gray-600 dark:text-gray-300">
-                    {user.name || user.email}님
-                  </span>
-                  <button
-                    onClick={handleLogout}
-                    className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                  >
-                    로그아웃
+      <header className="header header-6 bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10">
+        <div className="navbar-area">
+          <div className="container">
+            <div className="row align-items-center">
+              <div className="col-lg-12">
+                <nav className="navbar navbar-expand-lg">
+                  <a className="navbar-brand cursor-pointer" onClick={() => router.push('/')}>
+                    <h1 className="text-2xl font-bold text-purple-600">FormFlow</h1>
+                  </a>
+                  <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent6">
+                    <span className="toggler-icon"></span>
+                    <span className="toggler-icon"></span>
+                    <span className="toggler-icon"></span>
                   </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => router.push('/login')}
-                    className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                  >
-                    로그인
-                  </button>
-                  <button
-                    onClick={() => router.push('/register')}
-                    className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                  >
-                    회원가입
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => router.push('/survey/create')}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                설문조사 만들기
-              </button>
+
+                  <div className="collapse navbar-collapse sub-menu-bar" id="navbarSupportedContent6">
+                    <ul id="nav6" className="navbar-nav ms-auto">
+                      <li className="nav-item">
+                        <a className="page-scroll cursor-pointer" onClick={() => router.push('/')}>Home</a>
+                      </li>
+                      <li className="nav-item">
+                        <a className="page-scroll active cursor-pointer">설문조사</a>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="header-action d-flex align-items-center gap-3">
+                    {user ? (
+                      <>
+                        <span className="text-sm text-gray-600 dark:text-gray-300 hidden md:block">
+                          {user.name || user.email}님
+                        </span>
+                        <button
+                          onClick={handleLogout}
+                          className="btn btn-sm"
+                        >
+                          로그아웃
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => router.push('/login')}
+                          className="btn btn-sm"
+                        >
+                          로그인
+                        </button>
+                        <button
+                          onClick={() => router.push('/register')}
+                          className="btn btn-sm"
+                        >
+                          회원가입
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => router.push('/survey/create')}
+                      className="btn btn-sm btn-primary"
+                    >
+                      <i className="lni lni-plus"></i> 만들기
+                    </button>
+                  </div>
+                </nav>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
+      {/* Hero Section */}
+      <section className="hero-section hero-style-5 img-bg" style={{backgroundImage: "url('/assets/img/hero/hero-5/hero-bg.svg')", minHeight: '400px' }}>
+        <div className="container">
+          <div className="row">
+            <div className="col-lg-12">
+              <div className="hero-content-wrapper text-center">
+                <h2 className="mb-20 wow fadeInUp" data-wow-delay=".2s">설문조사 게시판</h2>
+                <p className="mb-30 wow fadeInUp" data-wow-delay=".4s">
+                  다양한 설문조사에 참여하고 의견을 공유하세요.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        {/* Search and Filter */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              {/* Search */}
-              <div className="flex-1">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="설문조사 제목 또는 내용 검색..."
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition"
-                  />
-                  <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Filter */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setFilterStatus('all')}
-                  className={`px-4 py-3 rounded-lg transition ${
-                    filterStatus === 'all'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  전체
-                </button>
-                <button
-                  onClick={() => setFilterStatus('open')}
-                  className={`px-4 py-3 rounded-lg transition ${
-                    filterStatus === 'open'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  진행중
-                </button>
-                <button
-                  onClick={() => setFilterStatus('closed')}
-                  className={`px-4 py-3 rounded-lg transition ${
-                    filterStatus === 'closed'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  마감
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="max-w-4xl mx-auto mb-6">
-          <div className="flex items-center justify-between">
-            <p className="text-gray-600 dark:text-gray-400">
-              총 <span className="font-bold text-purple-600">{filteredForms.length}</span>개의 설문조사
-              {searchTerm && ` (검색: "${searchTerm}")`}
-            </p>
-          </div>
-        </div>
-
-        {/* Survey List - Board Style */}
-        <div className="max-w-6xl mx-auto">
-          {filteredForms.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-12 text-center">
-              <svg className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                {searchTerm ? '검색 결과가 없습니다' : '아직 설문조사가 없습니다'}
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-6">
-                {searchTerm ? '다른 검색어를 시도해보세요.' : '첫 번째 설문조사를 만들어보세요!'}
-              </p>
-              {!searchTerm && (
-                <button
-                  onClick={() => router.push('/survey/create')}
-                  className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition inline-flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  설문조사 만들기
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
-              {/* Table Header */}
-              <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-                <div className="col-span-1 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">번호</div>
-                <div className="col-span-5 text-sm font-semibold text-gray-600 dark:text-gray-300">제목</div>
-                <div className="col-span-2 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">작성자</div>
-                <div className="col-span-2 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">작성일</div>
-                <div className="col-span-1 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">참여</div>
-                <div className="col-span-1 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">상태</div>
-              </div>
-
-              {/* Table Body */}
-              {filteredForms.map((form, index) => (
-                <div
-                  key={form.id}
-                  onClick={() => router.push(`/survey/${form.id}`)}
-                  className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-gray-100 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
-                >
-                  {/* Number */}
-                  <div className="col-span-1 text-center text-sm text-gray-500 dark:text-gray-400">
-                    {filteredForms.length - index}
-                  </div>
-
-                  {/* Title */}
-                  <div className="col-span-5">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition truncate">
-                        {form.title}
-                      </h3>
-                      {form.description && (
-                        <span className="text-xs text-gray-400 dark:text-gray-500 truncate">
-                          {form.description}
-                        </span>
-                      )}
+      <section className="feature-section feature-style-5 pb-120">
+        <div className="container">
+          {/* Search and Filter */}
+          <div className="row justify-content-center mb-50">
+            <div className="col-lg-8">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                <div className="row g-3">
+                  {/* Search */}
+                  <div className="col-md-6">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="설문조사 검색..."
+                        className="form-control"
+                      />
+                      <i className="lni lni-search absolute" style={{right: '15px', top: '50%', transform: 'translateY(-50%)'}}></i>
                     </div>
                   </div>
 
-                  {/* Author */}
-                  <div className="col-span-2 text-center text-sm text-gray-600 dark:text-gray-400">
-                    {form.author_name || '익명'}
-                  </div>
-
-                  {/* Date */}
-                  <div className="col-span-2 text-center text-sm text-gray-600 dark:text-gray-400">
-                    {formatDate(form.created_at)}
-                  </div>
-
-                  {/* Response Count */}
-                  <div className="col-span-1 text-center text-sm text-gray-600 dark:text-gray-400">
-                    {form.response_count}
-                  </div>
-
-                  {/* Status */}
-                  <div className="col-span-1 text-center">
-                    {form.is_open === 1 ? (
-                      <span className="inline-block px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded">
+                  {/* Filter */}
+                  <div className="col-md-6">
+                    <div className="d-flex gap-2 flex-wrap">
+                      <button
+                        onClick={() => setFilterStatus('all')}
+                        className={`btn ${filterStatus === 'all' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      >
+                        전체
+                      </button>
+                      <button
+                        onClick={() => setFilterStatus('open')}
+                        className={`btn ${filterStatus === 'open' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      >
                         진행중
-                      </span>
-                    ) : (
-                      <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded">
+                      </button>
+                      <button
+                        onClick={() => setFilterStatus('closed')}
+                        className={`btn ${filterStatus === 'closed' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      >
                         마감
-                      </span>
-                    )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="text-center mt-4">
+                <p className="text-gray-600 dark:text-gray-400">
+                  총 <span className="fw-bold text-primary">{filteredForms.length}</span>개의 설문조사
+                  {searchTerm && ` (검색: "${searchTerm}")`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Survey List - Card Grid Style */}
+          {filteredForms.length === 0 ? (
+            <div className="row justify-content-center">
+              <div className="col-lg-6">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-12 text-center">
+                  <i className="lni lni-files mb-4" style={{fontSize: '64px', color: '#d1d5db'}}></i>
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    {searchTerm ? '검색 결과가 없습니다' : '아직 설문조사가 없습니다'}
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400 mb-6">
+                    {searchTerm ? '다른 검색어를 시도해보세요.' : '첫 번째 설문조사를 만들어보세요!'}
+                  </p>
+                  {!searchTerm && (
+                    <button
+                      onClick={() => router.push('/survey/create')}
+                      className="btn btn-primary"
+                    >
+                      <i className="lni lni-plus"></i> 설문조사 만들기
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="row">
+              {filteredForms.map((form, index) => (
+                <div key={form.id} className="col-xl-4 col-lg-4 col-md-6 col-sm-12 mb-30">
+                  <div
+                    className="single-feature wow fadeInUp cursor-pointer survey-card"
+                    data-wow-delay={`${(index % 3 + 1) * 0.2}s`}
+                    onClick={() => router.push(`/survey/${form.id}`)}
+                  >
+                    <div className="icon">
+                      <i className="lni lni-popup"></i>
+                      <svg width="110" height="72" viewBox="0 0 110 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M110 54.7589C110 85.0014 85.3757 66.2583 55 66.2583C24.6243 66.2583 0 85.0014 0 54.7589C0 24.5164 24.6243 0 55 0C85.3757 0 110 24.5164 110 54.7589Z" fill="#EBF4FF"/>
+                      </svg>
+                    </div>
+                    <div className="content">
+                      <div className="d-flex justify-content-between align-items-start mb-2">
+                        <h5 className="text-truncate" style={{maxWidth: '70%'}}>{form.title}</h5>
+                        {form.is_open === 1 ? (
+                          <span className="badge bg-success">진행중</span>
+                        ) : (
+                          <span className="badge bg-secondary">마감</span>
+                        )}
+                      </div>
+                      {form.description && (
+                        <p className="text-gray-600 dark:text-gray-400 text-truncate mb-3">
+                          {form.description}
+                        </p>
+                      )}
+                      <div className="d-flex justify-content-between align-items-center text-sm text-gray-500">
+                        <span>
+                          <i className="lni lni-user"></i> {form.author_name || '익명'}
+                        </span>
+                        <span>
+                          <i className="lni lni-calendar"></i> {formatDate(form.created_at)}
+                        </span>
+                      </div>
+                      <div className="mt-3 pt-3 border-top border-gray-200 dark:border-gray-700">
+                        <span className="text-primary fw-bold">
+                          <i className="lni lni-users"></i> {form.response_count}명 참여
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
-      </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="footer footer-style-4">
+        <div className="container">
+          <div className="copyright-wrapper text-center">
+            <p>© 2025 FormFlow. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
