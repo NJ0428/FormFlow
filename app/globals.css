@@ -25,26 +25,3 @@ body {
     text-wrap: balance;
   }
 }
-
-/* Survey Card Styles */
-.survey-card {
-  background: white;
-  border-radius: 16px;
-  padding: 30px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  height: 100%;
-}
-
-.survey-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-}
-
-.dark .survey-card {
-  background: #1f2937;
-}
-
-.dark .survey-card:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-}
