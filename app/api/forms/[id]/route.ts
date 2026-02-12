@@ -4,11 +4,12 @@ import db from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const formId = parseInt(params.id);
-    
+    const { id } = await params;
+    const formId = parseInt(id);
+
     const form = db.prepare('SELECT * FROM forms WHERE id = ?').get(formId);
     if (!form) {
       return NextResponse.json({ error: '폼을 찾을 수 없습니다.' }, { status: 404 });
@@ -18,7 +19,13 @@ export async function GET(
       'SELECT * FROM questions WHERE form_id = ? ORDER BY order_index'
     ).all(formId);
 
-    return NextResponse.json({ form: { ...form, questions } });
+    // Parse options from JSON string to array
+    const parsedQuestions = questions.map((q: any) => ({
+      ...q,
+      options: q.options ? JSON.parse(q.options) : undefined
+    }));
+
+    return NextResponse.json({ form: { ...form, questions: parsedQuestions } });
   } catch (error) {
     console.error('Get form error:', error);
     return NextResponse.json({ error: '폼을 가져올 수 없습니다.' }, { status: 500 });
@@ -27,7 +34,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = request.cookies.get('auth-token')?.value;
@@ -40,7 +47,8 @@ export async function PUT(
       return NextResponse.json({ error: '유효하지 않은 토큰입니다.' }, { status: 401 });
     }
 
-    const formId = parseInt(params.id);
+    const { id } = await params;
+    const formId = parseInt(id);
     const form = db.prepare('SELECT * FROM forms WHERE id = ?').get(formId) as any;
 
     if (!form || form.user_id !== decoded.id) {
@@ -64,7 +72,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = request.cookies.get('auth-token')?.value;
@@ -77,7 +85,8 @@ export async function DELETE(
       return NextResponse.json({ error: '유효하지 않은 토큰입니다.' }, { status: 401 });
     }
 
-    const formId = parseInt(params.id);
+    const { id } = await params;
+    const formId = parseInt(id);
     const form = db.prepare('SELECT * FROM forms WHERE id = ?').get(formId) as any;
 
     if (!form || form.user_id !== decoded.id) {
