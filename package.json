@@ -14,7 +14,8 @@
     "jsonwebtoken": "^9.0.3",
     "next": "^15.1.6",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "recharts": "^3.7.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",

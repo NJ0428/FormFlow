@@ -28,7 +28,22 @@ export async function GET(
       'SELECT * FROM responses WHERE form_id = ? ORDER BY submitted_at DESC'
     ).all(formId);
 
-    return NextResponse.json({ responses });
+    // Get answers for each response
+    const responsesWithAnswers = responses.map((response: any) => {
+      const answers = db.prepare(
+        'SELECT a.*, q.title as question_title, q.type as question_type, q.options as question_options FROM answers a JOIN questions q ON a.question_id = q.id WHERE a.response_id = ?'
+      ).all(response.id);
+
+      return {
+        ...response,
+        answers: answers.map((a: any) => ({
+          ...a,
+          options: a.question_options ? JSON.parse(a.question_options) : undefined
+        }))
+      };
+    });
+
+    return NextResponse.json({ responses: responsesWithAnswers });
   } catch (error) {
     console.error('Get responses error:', error);
     return NextResponse.json({ error: '응답 목록을 가져올 수 없습니다.' }, { status: 500 });
