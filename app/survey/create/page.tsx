@@ -3,12 +3,19 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+interface QuestionCondition {
+  questionId: string;
+  value: string | string[];
+  operator: 'equals' | 'contains' | 'greater_than' | 'less_than';
+}
+
 interface Question {
   id: string;
   type: 'short_text' | 'long_text' | 'multiple' | 'single' | 'rating';
   title: string;
   options?: string[];
   required: boolean;
+  condition?: QuestionCondition;
 }
 
 interface User {
@@ -25,6 +32,8 @@ export default function CreateSurveyPage() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [conditionModalOpen, setConditionModalOpen] = useState(false);
+  const [conditionQuestionId, setConditionQuestionId] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -111,6 +120,26 @@ export default function CreateSurveyPage() {
       }
       return q;
     }));
+  };
+
+  const openConditionModal = (questionId: string) => {
+    setConditionQuestionId(questionId);
+    setConditionModalOpen(true);
+  };
+
+  const closeConditionModal = () => {
+    setConditionModalOpen(false);
+    setConditionQuestionId(null);
+  };
+
+  const updateCondition = (questionId: string, condition: QuestionCondition | undefined) => {
+    updateQuestion(questionId, { condition });
+    closeConditionModal();
+  };
+
+  const getAvailableQuestionsForCondition = (currentQuestionIndex: number) => {
+    // Only allow conditions on questions that come before the current one
+    return questions.slice(0, currentQuestionIndex);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -299,15 +328,33 @@ export default function CreateSurveyPage() {
                     {question.type === 'multiple' && '복수 선택'}
                     {question.type === 'rating' && '별점'}
                   </span>
+                  {question.condition && (
+                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full">
+                      조건부
+                    </span>
+                  )}
                 </div>
-                <button
-                  onClick={() => deleteQuestion(question.id)}
-                  className="text-red-500 hover:text-red-700 p-1"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+                <div className="flex items-center gap-2">
+                  {index > 0 && (
+                    <button
+                      onClick={() => openConditionModal(question.id)}
+                      className="text-blue-500 hover:text-blue-700 p-1"
+                      title="조건 추가"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                      </svg>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => deleteQuestion(question.id)}
+                    className="text-red-500 hover:text-red-700 p-1"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -416,6 +463,235 @@ export default function CreateSurveyPage() {
               </button>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Condition Modal */}
+      {conditionModalOpen && conditionQuestionId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 max-w-lg w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                표시 조건 설정
+              </h3>
+              <button
+                onClick={closeConditionModal}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <ConditionModalForm
+              question={questions.find(q => q.id === conditionQuestionId)!}
+              availableQuestions={getAvailableQuestionsForCondition(
+                questions.findIndex(q => q.id === conditionQuestionId)
+              )}
+              onSave={(condition) => updateCondition(conditionQuestionId, condition)}
+              onCancel={closeConditionModal}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Condition Modal Form Component
+interface ConditionModalFormProps {
+  question: Question;
+  availableQuestions: Question[];
+  onSave: (condition: QuestionCondition | undefined) => void;
+  onCancel: () => void;
+}
+
+function ConditionModalForm({ question, availableQuestions, onSave, onCancel }: ConditionModalFormProps) {
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string>(
+    question.condition?.questionId.toString() || ''
+  );
+  const [operator, setOperator] = useState<QuestionCondition['operator']>(
+    question.condition?.operator || 'equals'
+  );
+  const [value, setValue] = useState<string>(
+    typeof question.condition?.value === 'string'
+      ? question.condition.value
+      : Array.isArray(question.condition?.value)
+      ? question.condition.value[0] || ''
+      : ''
+  );
+
+  const selectedQuestion = availableQuestions.find(q => q.id === selectedQuestionId);
+  const isNumeric = selectedQuestion?.type === 'rating';
+  const isChoice = selectedQuestion?.type === 'single' || selectedQuestion?.type === 'multiple';
+
+  const handleSave = () => {
+    if (!selectedQuestionId) {
+      alert('의존할 질문을 선택해주세요.');
+      return;
+    }
+    if (!value) {
+      alert('조건 값을 입력해주세요.');
+      return;
+    }
+
+    let finalValue: string | string[] = value;
+    if (selectedQuestion?.type === 'multiple') {
+      finalValue = [value];
+    }
+
+    onSave({
+      questionId: selectedQuestionId,
+      operator,
+      value: finalValue,
+    });
+  };
+
+  const handleRemoveCondition = () => {
+    onSave(undefined);
+  };
+
+  const getOperatorLabel = (op: QuestionCondition['operator']) => {
+    switch (op) {
+      case 'equals': return '같음';
+      case 'contains': return '포함';
+      case 'greater_than': return '보다 큼';
+      case 'less_than': return '보다 작음';
+      default: return op;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Select Dependent Question */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          의존할 질문
+        </label>
+        <select
+          value={selectedQuestionId}
+          onChange={(e) => {
+            setSelectedQuestionId(e.target.value);
+            setValue('');
+          }}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+        >
+          <option value="">질문을 선택하세요</option>
+          {availableQuestions.map((q, idx) => (
+            <option key={q.id} value={q.id}>
+              {idx + 1}. {q.title || '제목 없음'} ({q.type === 'short_text' ? '단답형' : q.type === 'long_text' ? '장문형' : q.type === 'single' ? '단일 선택' : q.type === 'multiple' ? '복수 선택' : '별점'})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Select Operator */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          조건 연산자
+        </label>
+        <select
+          value={operator}
+          onChange={(e) => setOperator(e.target.value as QuestionCondition['operator'])}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+        >
+          {isNumeric ? (
+            <>
+              <option value="equals">같음</option>
+              <option value="greater_than">보다 큼</option>
+              <option value="less_than">보다 작음</option>
+            </>
+          ) : isChoice ? (
+            <>
+              <option value="equals">같음</option>
+              <option value="contains">포함</option>
+            </>
+          ) : (
+            <>
+              <option value="equals">같음</option>
+              <option value="contains">포함</option>
+            </>
+          )}
+        </select>
+      </div>
+
+      {/* Condition Value Input */}
+      {selectedQuestion && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            조건 값
+          </label>
+          {selectedQuestion.options ? (
+            <select
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            >
+              <option value="">옵션을 선택하세요</option>
+              {selectedQuestion.options.map((opt, idx) => (
+                <option key={idx} value={opt}>
+                  {opt || `옵션 ${idx + 1}`}
+                </option>
+              ))}
+            </select>
+          ) : selectedQuestion.type === 'rating' ? (
+            <select
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            >
+              <option value="">점수를 선택하세요</option>
+              {[1, 2, 3, 4, 5].map(score => (
+                <option key={score} value={score.toString()}>
+                  {score}점
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="조건 값을 입력하세요"
+            />
+          )}
+        </div>
+      )}
+
+      {/* Condition Preview */}
+      {selectedQuestion && value && (
+        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+          <p className="text-sm text-blue-700 dark:text-blue-300">
+            <span className="font-medium">조건 요약:</span> {'Q' + (availableQuestions.findIndex(q => q.id === selectedQuestionId) + 1) + '의 답변이 "' + value + '"' + (operator === 'equals' ? '과 같으면' : operator === 'contains' ? '을 포함하면' : operator === 'greater_than' ? '보다 크면' : '보다 작으면') + ' 표시'}
+          </p>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex justify-between pt-4">
+        {question.condition && (
+          <button
+            onClick={handleRemoveCondition}
+            className="px-4 py-2 text-red-600 hover:text-red-700 text-sm font-medium"
+          >
+            조건 삭제
+          </button>
+        )}
+        <div className="flex gap-2 ml-auto">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 border border-gray-300 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+          >
+            취소
+          </button>
+          <button
+            onClick={handleSave}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+          >
+            저장
+          </button>
         </div>
       </div>
     </div>

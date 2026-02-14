@@ -3,12 +3,19 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
+interface QuestionCondition {
+  questionId: number;
+  value: string | string[];
+  operator: 'equals' | 'contains' | 'greater_than' | 'less_than';
+}
+
 interface Question {
   id: number;
   type: 'short_text' | 'long_text' | 'multiple' | 'single' | 'rating';
   title: string;
   options?: string[];
   required: boolean;
+  condition?: QuestionCondition;
 }
 
 interface Form {
@@ -59,10 +66,50 @@ export default function SurveyDetailPage() {
     setAnswers({ ...answers, [questionId]: value });
   };
 
+  const shouldShowQuestion = (question: Question): boolean => {
+    if (!question.condition) return true;
+
+    const dependentAnswer = answers[question.condition.questionId];
+    const conditionValue = question.condition.value;
+    const operator = question.condition.operator;
+
+    switch (operator) {
+      case 'equals':
+        if (Array.isArray(dependentAnswer)) {
+          return dependentAnswer.includes(conditionValue);
+        }
+        return dependentAnswer === conditionValue;
+      case 'contains':
+        if (Array.isArray(dependentAnswer)) {
+          return dependentAnswer.includes(conditionValue);
+        }
+        return String(dependentAnswer).includes(String(conditionValue));
+      case 'greater_than':
+        return Number(dependentAnswer) > Number(conditionValue);
+      case 'less_than':
+        return Number(dependentAnswer) < Number(conditionValue);
+      default:
+        return true;
+    }
+  };
+
+  const getVisibleQuestions = (): Question[] => {
+    if (!form) return [];
+    return form.questions.filter(q => shouldShowQuestion(q));
+  };
+
+  const getQuestionNumber = (question: Question): number => {
+    const visibleQuestions = getVisibleQuestions();
+    return visibleQuestions.findIndex(q => q.id === question.id) + 1;
+  };
+
   const validateAnswers = () => {
     if (!form) return false;
 
-    for (const question of form.questions) {
+    // Only validate visible questions
+    const visibleQuestions = form.questions.filter(q => shouldShowQuestion(q));
+
+    for (const question of visibleQuestions) {
       if (question.required && !answers[question.id]) {
         return false;
       }
@@ -206,17 +253,17 @@ export default function SurveyDetailPage() {
             <div className="mt-4 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
               <span>작성자: {form.author_name || '익명'}</span>
               <span>•</span>
-              <span>총 {form.questions.length}개 질문</span>
+              <span>총 {getVisibleQuestions().length}개 질문</span>
             </div>
           </div>
 
           {/* Questions */}
           <div className="space-y-6 mb-8">
-            {form.questions.map((question, index) => (
+            {form.questions.filter(q => shouldShowQuestion(q)).map((question) => (
               <div key={question.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
                 <div className="flex items-start gap-4 mb-4">
                   <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full font-semibold">
-                    {index + 1}
+                    {getQuestionNumber(question)}
                   </span>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">

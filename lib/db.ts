@@ -43,9 +43,31 @@ db.exec(`
     options TEXT,
     required INTEGER DEFAULT 0,
     order_index INTEGER NOT NULL,
+    condition_question_id INTEGER,
+    condition_value TEXT,
+    condition_operator TEXT DEFAULT 'equals',
     FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE
   )
 `);
+
+// Migration: Add condition columns if they don't exist (for existing databases)
+try {
+  const columns = db.pragma('table_info(questions)');
+  const columnNames = columns.map((col: any) => col.name);
+
+  if (!columnNames.includes('condition_question_id')) {
+    db.exec('ALTER TABLE questions ADD COLUMN condition_question_id INTEGER');
+  }
+  if (!columnNames.includes('condition_value')) {
+    db.exec('ALTER TABLE questions ADD COLUMN condition_value TEXT');
+  }
+  if (!columnNames.includes('condition_operator')) {
+    db.exec("ALTER TABLE questions ADD COLUMN condition_operator TEXT DEFAULT 'equals'");
+  }
+} catch (error) {
+  // Columns might already exist, ignore error
+  console.log('Migration check completed');
+}
 
 // Create responses table
 db.exec(`

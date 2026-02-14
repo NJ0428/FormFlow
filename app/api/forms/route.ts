@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     if (questions && Array.isArray(questions)) {
       const insertQuestion = db.prepare(
-        'INSERT INTO questions (form_id, type, title, description, options, required, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO questions (form_id, type, title, description, options, required, order_index, condition_question_id, condition_value, condition_operator) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
       );
 
       questions.forEach((q: any, index: number) => {
@@ -86,7 +86,10 @@ export async function POST(request: NextRequest) {
           q.description || null,
           q.options ? JSON.stringify(q.options) : null,
           q.required ? 1 : 0,
-          index
+          index,
+          q.condition?.questionId ? parseInt(q.condition.questionId as string) : null,
+          q.condition?.value ? JSON.stringify(q.condition.value) : null,
+          q.condition?.operator || 'equals'
         );
       });
     }

@@ -19,10 +19,15 @@ export async function GET(
       'SELECT * FROM questions WHERE form_id = ? ORDER BY order_index'
     ).all(formId);
 
-    // Parse options from JSON string to array
+    // Parse options from JSON string to array and condition data
     const parsedQuestions = questions.map((q: any) => ({
       ...q,
-      options: q.options ? JSON.parse(q.options) : undefined
+      options: q.options ? JSON.parse(q.options) : undefined,
+      condition: q.condition_question_id ? {
+        questionId: q.condition_question_id,
+        value: q.condition_value ? JSON.parse(q.condition_value) : undefined,
+        operator: q.condition_operator || 'equals'
+      } : undefined
     }));
 
     return NextResponse.json({ form: { ...form, questions: parsedQuestions } });
