@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 
 interface Question {
   id: number;
-  type: 'text' | 'multiple' | 'single' | 'rating';
+  type: 'short_text' | 'long_text' | 'multiple' | 'single' | 'rating';
   title: string;
   options?: string[];
   required: boolean;
@@ -226,8 +226,19 @@ export default function SurveyDetailPage() {
                       )}
                     </h3>
 
-                    {/* Text Input */}
-                    {question.type === 'text' && (
+                    {/* Short Text Input */}
+                    {question.type === 'short_text' && (
+                      <input
+                        type="text"
+                        value={answers[question.id] || ''}
+                        onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition"
+                        placeholder="답변을 입력하세요..."
+                      />
+                    )}
+
+                    {/* Long Text Input */}
+                    {question.type === 'long_text' && (
                       <textarea
                         value={answers[question.id] || ''}
                         onChange={(e) => handleAnswerChange(question.id, e.target.value)}

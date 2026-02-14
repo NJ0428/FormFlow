@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 interface Question {
   id: string;
-  type: 'text' | 'multiple' | 'single' | 'rating';
+  type: 'short_text' | 'long_text' | 'multiple' | 'single' | 'rating';
   title: string;
   options?: string[];
   required: boolean;
@@ -235,15 +235,24 @@ export default function CreateSurveyPage() {
           {/* Add Question Buttons */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">질문 추가</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <button
-                onClick={() => addQuestion('text')}
+                onClick={() => addQuestion('short_text')}
                 className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
               >
                 <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">주관식</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">단답형</span>
+              </button>
+              <button
+                onClick={() => addQuestion('long_text')}
+                className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
+              >
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">장문형</span>
               </button>
               <button
                 onClick={() => addQuestion('single')}
@@ -284,7 +293,8 @@ export default function CreateSurveyPage() {
                     {index + 1}
                   </span>
                   <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {question.type === 'text' && '주관식'}
+                    {question.type === 'short_text' && '단답형'}
+                    {question.type === 'long_text' && '장문형'}
                     {question.type === 'single' && '단일 선택'}
                     {question.type === 'multiple' && '복수 선택'}
                     {question.type === 'rating' && '별점'}
