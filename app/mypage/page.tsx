@@ -357,7 +357,7 @@ export default function MyPage() {
                               보기
                             </Link>
                             <Link
-                              href={`/survey/${form.id}`}
+                              href={`/survey/${form.id}/results`}
                               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm"
                             >
                               결과
