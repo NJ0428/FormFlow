@@ -26,6 +26,7 @@ db.exec(`
     title TEXT NOT NULL,
     description TEXT,
     is_open INTEGER DEFAULT 1,
+    deadline DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -67,6 +68,18 @@ try {
 } catch (error) {
   // Columns might already exist, ignore error
   console.log('Migration check completed');
+}
+
+// Migration: Add deadline column to forms table if it doesn't exist
+try {
+  const formColumns = db.pragma('table_info(forms)');
+  const formColumnNames = formColumns.map((col: any) => col.name);
+
+  if (!formColumnNames.includes('deadline')) {
+    db.exec('ALTER TABLE forms ADD COLUMN deadline DATETIME');
+  }
+} catch (error) {
+  console.log('Forms migration check completed');
 }
 
 // Create responses table

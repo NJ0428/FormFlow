@@ -17,6 +17,7 @@ interface Form {
   created_at: string;
   response_count: number;
   is_open: number;
+  deadline: string | null;
 }
 
 export default function MyPage() {
@@ -141,6 +142,84 @@ export default function MyPage() {
       router.push('/login');
     } catch (err) {
       console.error('Logout error:', err);
+    }
+  };
+
+  const handleDeleteForm = async (formId: number) => {
+    if (!confirm('정말 이 설문조사를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/forms/${formId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        alert('설문조사가 삭제되었습니다.');
+        // Refresh forms list
+        const formsRes = await fetch('/api/forms?my=true');
+        if (formsRes.ok) {
+          const formsData = await formsRes.json();
+          setForms(formsData.forms || []);
+        }
+      } else {
+        const data = await res.json();
+        alert(data.error || '삭제에 실패했습니다.');
+      }
+    } catch (err) {
+      alert('서버 오류가 발생했습니다.');
+    }
+  };
+
+  const handleDuplicateForm = async (formId: number) => {
+    try {
+      const res = await fetch(`/api/forms/${formId}/duplicate`, {
+        method: 'POST',
+      });
+
+      if (res.ok) {
+        alert('설문조사가 복제되었습니다.');
+        // Refresh forms list
+        const formsRes = await fetch('/api/forms?my=true');
+        if (formsRes.ok) {
+          const formsData = await formsRes.json();
+          setForms(formsData.forms || []);
+        }
+      } else {
+        const data = await res.json();
+        alert(data.error || '복제에 실패했습니다.');
+      }
+    } catch (err) {
+      alert('서버 오류가 발생했습니다.');
+    }
+  };
+
+  const handleToggleOpen = async (formId: number, currentStatus: number) => {
+    try {
+      const res = await fetch(`/api/forms/${formId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: forms.find(f => f.id === formId)?.title,
+          description: forms.find(f => f.id === formId)?.description,
+          is_open: currentStatus === 1 ? 0 : 1,
+        }),
+      });
+
+      if (res.ok) {
+        // Refresh forms list
+        const formsRes = await fetch('/api/forms?my=true');
+        if (formsRes.ok) {
+          const formsData = await formsRes.json();
+          setForms(formsData.forms || []);
+        }
+      } else {
+        const data = await res.json();
+        alert(data.error || '상태 변경에 실패했습니다.');
+      }
+    } catch (err) {
+      alert('서버 오류가 발생했습니다.');
     }
   };
 
@@ -347,21 +426,58 @@ export default function MyPage() {
                             <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                               <span>📊 {form.response_count}명 참여</span>
                               <span>📅 {new Date(form.created_at).toLocaleDateString('ko-KR')}</span>
+                              {form.deadline && (
+                                <span className={form.is_open && new Date(form.deadline) > new Date() ? 'text-green-600' : 'text-red-600'}>
+                                  ⏰ 마감: {new Date(form.deadline).toLocaleDateString('ko-KR')}
+                                </span>
+                              )}
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Link
-                              href={`/survey/${form.id}`}
-                              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm"
-                            >
-                              보기
-                            </Link>
-                            <Link
-                              href={`/survey/${form.id}/results`}
-                              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm"
-                            >
-                              결과
-                            </Link>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex gap-2">
+                              <Link
+                                href={`/survey/${form.id}`}
+                                className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm"
+                              >
+                                보기
+                              </Link>
+                              <Link
+                                href={`/survey/${form.id}/results`}
+                                className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm"
+                              >
+                                결과
+                              </Link>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleToggleOpen(form.id, form.is_open)}
+                                className={`flex-1 px-3 py-2 text-white rounded-lg transition text-sm ${
+                                  form.is_open
+                                    ? 'bg-orange-500 hover:bg-orange-600'
+                                    : 'bg-green-500 hover:bg-green-600'
+                                }`}
+                              >
+                                {form.is_open ? '마감' : '열기'}
+                              </button>
+                              <button
+                                onClick={() => handleDuplicateForm(form.id)}
+                                className="flex-1 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm"
+                              >
+                                복제
+                              </button>
+                              <button
+                                onClick={() => router.push(`/survey/create?edit=${form.id}`)}
+                                className="flex-1 px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition text-sm"
+                              >
+                                수정
+                              </button>
+                              <button
+                                onClick={() => handleDeleteForm(form.id)}
+                                className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm"
+                              >
+                                🗑️
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>

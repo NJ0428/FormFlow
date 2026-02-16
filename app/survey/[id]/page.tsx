@@ -25,6 +25,7 @@ interface Form {
   author_name: string | null;
   created_at: string;
   is_open: number;
+  deadline: string | null;
   questions: Question[];
 }
 
@@ -190,7 +191,10 @@ export default function SurveyDetailPage() {
     return null;
   }
 
-  if (form.is_open === 0) {
+  // Check if form is closed or deadline passed
+  const isDeadlinePassed = form.deadline && new Date(form.deadline) < new Date();
+
+  if (form.is_open === 0 || isDeadlinePassed) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-12 max-w-md text-center">
@@ -200,10 +204,10 @@ export default function SurveyDetailPage() {
             </svg>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            마감된 설문조사
+            {isDeadlinePassed ? '마감 기한 경과' : '마감된 설문조사'}
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-8">
-            이 설문조사는 이미 마감되었습니다.
+            {isDeadlinePassed ? '이 설문조사의 마감 기한이 지났습니다.' : '이 설문조사는 이미 마감되었습니다.'}
           </p>
           <button
             onClick={() => router.push('/survey')}
@@ -254,6 +258,14 @@ export default function SurveyDetailPage() {
               <span>작성자: {form.author_name || '익명'}</span>
               <span>•</span>
               <span>총 {getVisibleQuestions().length}개 질문</span>
+              {form.deadline && (
+                <>
+                  <span>•</span>
+                  <span className={isDeadlinePassed ? 'text-red-600' : 'text-orange-600'}>
+                    ⏰ 마감: {new Date(form.deadline).toLocaleDateString('ko-KR')}
+                  </span>
+                </>
+              )}
             </div>
           </div>
 

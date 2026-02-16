@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface QuestionCondition {
   questionId: string;
@@ -26,14 +26,20 @@ interface User {
 
 export default function CreateSurveyPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams?.get('edit');
+
   const [surveyTitle, setSurveyTitle] = useState('');
   const [surveyDescription, setSurveyDescription] = useState('');
+  const [deadline, setDeadline] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [conditionModalOpen, setConditionModalOpen] = useState(false);
   const [conditionQuestionId, setConditionQuestionId] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [fetchingForm, setFetchingForm] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -56,6 +62,53 @@ export default function CreateSurveyPage() {
     }
   };
 
+  // Load form data if editing
+  useEffect(() => {
+    if (editId && user) {
+      loadFormForEdit(editId);
+    }
+  }, [editId, user]);
+
+  const loadFormForEdit = async (id: string) => {
+    setFetchingForm(true);
+    try {
+      const response = await fetch(`/api/forms/${id}`);
+      if (response.ok) {
+        const data = await response.json();
+        const form = data.form;
+        setSurveyTitle(form.title);
+        setSurveyDescription(form.description || '');
+        setDeadline(form.deadline ? form.deadline.split('T')[0] : '');
+
+        // Convert questions to match the Question interface
+        const convertedQuestions = form.questions.map((q: any) => ({
+          id: q.id.toString(),
+          type: q.type,
+          title: q.title,
+          options: q.options,
+          required: q.required === 1,
+          condition: q.condition_question_id ? {
+            questionId: q.condition_question_id.toString(),
+            value: q.condition_value ? JSON.parse(q.condition_value) : undefined,
+            operator: q.condition_operator || 'equals'
+          } : undefined
+        }));
+
+        setQuestions(convertedQuestions);
+        setIsEditMode(true);
+      } else {
+        alert('설문조사를 불러오는데 실패했습니다.');
+        router.push('/mypage');
+      }
+    } catch (error) {
+      console.error('Load form error:', error);
+      alert('서버 오류가 발생했습니다.');
+      router.push('/mypage');
+    } finally {
+      setFetchingForm(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -66,7 +119,7 @@ export default function CreateSurveyPage() {
     }
   };
 
-  if (checkingAuth) {
+  if (checkingAuth || fetchingForm) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-purple-600 border-opacity-75"></div>
@@ -156,22 +209,26 @@ export default function CreateSurveyPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/forms', {
-        method: 'POST',
+      const url = isEditMode ? `/api/forms/${editId}` : '/api/forms';
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: surveyTitle,
           description: surveyDescription,
+          deadline: deadline || null,
           questions,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        router.push(`/survey/${data.id}`);
+        router.push(`/survey/${data.form?.id || editId}`);
       } else {
         const error = await response.json();
-        alert(error.error || '설문조사 생성에 실패했습니다.');
+        alert(error.error || '설문조사 저장에 실패했습니다.');
       }
     } catch (err) {
       alert('서버 오류가 발생했습니다.');
@@ -229,6 +286,13 @@ export default function CreateSurveyPage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
+          {/* Page Header */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              {isEditMode ? '설문조사 수정' : '새 설문조사 만들기'}
+            </h1>
+          </div>
+
           {/* Survey Header */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-6">
             <div className="space-y-4">
@@ -257,6 +321,21 @@ export default function CreateSurveyPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white transition resize-none"
                   placeholder="이 설문조사의 목적과 내용을 설명해주세요."
                 />
+              </div>
+              <div>
+                <label htmlFor="deadline" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  마감 기한
+                </label>
+                <input
+                  id="deadline"
+                  type="date"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white transition"
+                />
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  마감 기한을 설정하지 않으면 무기한 응답 가능합니다.
+                </p>
               </div>
             </div>
           </div>
@@ -450,14 +529,14 @@ export default function CreateSurveyPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    생성 중...
+                    {isEditMode ? '수정 중...' : '생성 중...'}
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    설문조사 생성
+                    {isEditMode ? '설문조사 수정' : '설문조사 생성'}
                   </>
                 )}
               </button>

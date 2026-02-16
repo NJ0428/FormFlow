@@ -61,15 +61,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '유효하지 않은 토큰입니다.' }, { status: 401 });
     }
 
-    const { title, description, questions } = await request.json();
+    const { title, description, deadline, questions } = await request.json();
 
     if (!title) {
       return NextResponse.json({ error: '제목은 필수입니다.' }, { status: 400 });
     }
 
     const result = db.prepare(
-      'INSERT INTO forms (user_id, title, description) VALUES (?, ?, ?)'
-    ).run(decoded.id, title, description || null);
+      'INSERT INTO forms (user_id, title, description, deadline) VALUES (?, ?, ?, ?)'
+    ).run(decoded.id, title, description || null, deadline || null);
 
     const formId = result.lastInsertRowid as number;
 
