@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface User {
   id: number;
@@ -26,6 +27,8 @@ export default function MyPage() {
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'forms'>('profile');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'closed'>('all');
 
   // 프로필 수정 폼 상태
   const [name, setName] = useState('');
@@ -223,6 +226,17 @@ export default function MyPage() {
     }
   };
 
+  const getFilteredForms = () => {
+    return forms.filter(form => {
+      const matchesSearch = form.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (form.description && form.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesStatus = filterStatus === 'all' ||
+        (filterStatus === 'open' && form.is_open === 1) ||
+        (filterStatus === 'closed' && form.is_open === 0);
+      return matchesSearch && matchesStatus;
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
@@ -241,12 +255,15 @@ export default function MyPage() {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">마이페이지</h1>
               <p className="text-gray-600 dark:text-gray-300 mt-1">{user?.email}</p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-            >
-              로그아웃
-            </button>
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <button
+                onClick={handleLogout}
+                className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+              >
+                로그아웃
+              </button>
+            </div>
           </div>
         </div>
 
@@ -389,19 +406,66 @@ export default function MyPage() {
             {/* 내 설문조사 탭 */}
             {activeTab === 'forms' && (
               <div>
-                {forms.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-gray-500 dark:text-gray-400 mb-4">아직 만든 설문조사가 없습니다.</p>
-                    <Link
-                      href="/survey/create"
-                      className="inline-block px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                {/* Search and Filter */}
+                <div className="mb-4 flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="설문조사 검색..."
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setFilterStatus('all')}
+                      className={`px-4 py-2 rounded-lg font-medium transition ${
+                        filterStatus === 'all'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
                     >
-                      첫 설문조사 만들기
-                    </Link>
+                      전체
+                    </button>
+                    <button
+                      onClick={() => setFilterStatus('open')}
+                      className={`px-4 py-2 rounded-lg font-medium transition ${
+                        filterStatus === 'open'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      진행중
+                    </button>
+                    <button
+                      onClick={() => setFilterStatus('closed')}
+                      className={`px-4 py-2 rounded-lg font-medium transition ${
+                        filterStatus === 'closed'
+                          ? 'bg-gray-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      마감
+                    </button>
+                  </div>
+                </div>
+
+                {getFilteredForms().length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">
+                      {searchTerm ? '검색 결과가 없습니다.' : '아직 만든 설문조사가 없습니다.'}
+                    </p>
+                    {!searchTerm && (
+                      <Link
+                        href="/survey/create"
+                        className="inline-block px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                      >
+                        첫 설문조사 만들기
+                      </Link>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {forms.map((form) => (
+                    {getFilteredForms().map((form) => (
                       <div
                         key={form.id}
                         className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-purple-300 dark:hover:border-purple-600 transition"

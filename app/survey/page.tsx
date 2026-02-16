@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface Form {
   id: number;
@@ -115,9 +116,9 @@ export default function SurveyListPage() {
   const filteredForms = getFilteredForms();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
+      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-700 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -148,14 +149,15 @@ export default function SurveyListPage() {
 
             {/* Actions */}
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               {user ? (
                 <>
-                  <span className="hidden sm:block text-sm text-gray-600">
+                  <span className="hidden sm:block text-sm text-gray-600 dark:text-gray-300">
                     {user.name || user.email}님
                   </span>
                   <button
                     onClick={handleLogout}
-                    className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition text-sm"
+                    className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-sm"
                   >
                     로그아웃
                   </button>
@@ -164,13 +166,13 @@ export default function SurveyListPage() {
                 <>
                   <button
                     onClick={() => router.push('/login')}
-                    className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition text-sm"
+                    className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-sm"
                   >
                     로그인
                   </button>
                   <button
                     onClick={() => router.push('/register')}
-                    className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition text-sm"
+                    className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-sm"
                   >
                     회원가입
                   </button>
