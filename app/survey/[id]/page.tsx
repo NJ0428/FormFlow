@@ -39,6 +39,7 @@ export default function SurveyDetailPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchForm();
@@ -102,6 +103,25 @@ export default function SurveyDetailPage() {
   const getQuestionNumber = (question: Question): number => {
     const visibleQuestions = getVisibleQuestions();
     return visibleQuestions.findIndex(q => q.id === question.id) + 1;
+  };
+
+  const getProgress = () => {
+    const visibleQuestions = getVisibleQuestions();
+    const answeredQuestions = visibleQuestions.filter(q => {
+      const answer = answers[q.id];
+      if (q.required && !answer) return false;
+      if (q.type === 'multiple' && answer && answer.length === 0) return false;
+      return true;
+    });
+    return visibleQuestions.length > 0 ? (answeredQuestions.length / visibleQuestions.length) * 100 : 0;
+  };
+
+  const copyShareLink = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   const validateAnswers = () => {
@@ -225,7 +245,7 @@ export default function SurveyDetailPage() {
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-2">
             <button
               onClick={() => router.push('/survey')}
               className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition"
@@ -235,9 +255,36 @@ export default function SurveyDetailPage() {
               </svg>
               뒤로가기
             </button>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">FormFlow</h1>
-            <div className="w-20"></div>
+            <button
+              onClick={copyShareLink}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+              {copied ? '링크 복사됨!' : '공유'}
+            </button>
           </div>
+
+          {/* Progress Bar */}
+          {getVisibleQuestions().length > 0 && (
+            <div className="max-w-md mx-auto">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  진행률
+                </span>
+                <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                  {Math.round(getProgress())}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                <div
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${getProgress()}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 

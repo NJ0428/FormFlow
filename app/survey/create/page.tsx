@@ -40,6 +40,7 @@ export default function CreateSurveyPage() {
   const [conditionQuestionId, setConditionQuestionId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [fetchingForm, setFetchingForm] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -513,6 +514,16 @@ export default function CreateSurveyPage() {
           {questions.length > 0 && (
             <div className="flex justify-end gap-3">
               <button
+                onClick={() => setPreviewMode(true)}
+                className="px-6 py-3 border-2 border-purple-600 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                미리보기
+              </button>
+              <button
                 onClick={() => router.push('/')}
                 className="px-6 py-3 border border-gray-300 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
               >
@@ -544,6 +555,119 @@ export default function CreateSurveyPage() {
           )}
         </div>
       </div>
+
+      {/* Preview Modal */}
+      {previewMode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+            {/* Preview Header */}
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {surveyTitle || '제목 없음'}
+              </h2>
+              <button
+                onClick={() => setPreviewMode(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Preview Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+              {surveyDescription && (
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  {surveyDescription}
+                </p>
+              )}
+
+              <div className="space-y-4">
+                {questions.map((question, index) => (
+                  <div key={question.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <div className="flex items-start gap-3 mb-3">
+                      <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full font-semibold">
+                        {index + 1}
+                      </span>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                          {question.title || '질문'}
+                          {question.required && (
+                            <span className="ml-2 text-red-500">*</span>
+                          )}
+                        </h3>
+
+                        {/* Preview Question Types */}
+                        {question.type === 'short_text' && (
+                          <input
+                            type="text"
+                            disabled
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
+                            placeholder="단답형 응답"
+                          />
+                        )}
+
+                        {question.type === 'long_text' && (
+                          <textarea
+                            disabled
+                            rows={4}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 resize-none"
+                            placeholder="장문형 응답"
+                          />
+                        )}
+
+                        {(question.type === 'single' || question.type === 'multiple') && question.options && (
+                          <div className="space-y-2">
+                            {question.options.map((option, optionIndex) => (
+                              <label
+                                key={optionIndex}
+                                className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50"
+                              >
+                                <input
+                                  type={question.type === 'single' ? 'radio' : 'checkbox'}
+                                  disabled
+                                  className="w-4 h-4 text-purple-600 border-gray-300"
+                                />
+                                <span className="text-gray-700 dark:text-gray-300">
+                                  {option || `옵션 ${optionIndex + 1}`}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+
+                        {question.type === 'rating' && (
+                          <div className="flex gap-2">
+                            {[1, 2, 3, 4, 5].map((rating) => (
+                              <button
+                                key={rating}
+                                disabled
+                                className="w-12 h-12 rounded-lg text-xl font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                              >
+                                {rating}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {questions.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 dark:text-gray-400">
+                    아직 질문이 없습니다.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Condition Modal */}
 
       {/* Condition Modal */}
       {conditionModalOpen && conditionQuestionId && (
