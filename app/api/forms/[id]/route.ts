@@ -30,7 +30,17 @@ export async function GET(
       } : undefined
     }));
 
-    return NextResponse.json({ form: { ...form, questions: parsedQuestions } });
+    // Check if current user is the owner
+    let isOwner = false;
+    const token = request.cookies.get('auth-token')?.value;
+    if (token) {
+      const decoded = verifyToken(token);
+      if (decoded && (form as any).user_id === decoded.id) {
+        isOwner = true;
+      }
+    }
+
+    return NextResponse.json({ form: { ...form, questions: parsedQuestions }, isOwner });
   } catch (error) {
     console.error('Get form error:', error);
     return NextResponse.json({ error: '폼을 가져올 수 없습니다.' }, { status: 500 });

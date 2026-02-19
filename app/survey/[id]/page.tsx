@@ -40,6 +40,7 @@ export default function SurveyDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     fetchForm();
@@ -51,6 +52,7 @@ export default function SurveyDetailPage() {
       if (response.ok) {
         const data = await response.json();
         setForm(data.form);
+        setIsOwner(data.isOwner || false);
       } else {
         alert('설문조사를 찾을 수 없습니다.');
         router.push('/survey');
@@ -122,6 +124,28 @@ export default function SurveyDetailPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+  };
+
+  const handleDeleteForm = async () => {
+    if (!confirm('정말 이 설문조사를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/forms/${surveyId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        alert('설문조사가 삭제되었습니다.');
+        router.push('/survey');
+      } else {
+        const data = await response.json();
+        alert(data.error || '삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      alert('서버 오류가 발생했습니다.');
+    }
   };
 
   const validateAnswers = () => {
@@ -255,15 +279,28 @@ export default function SurveyDetailPage() {
               </svg>
               뒤로가기
             </button>
-            <button
-              onClick={copyShareLink}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
-              {copied ? '링크 복사됨!' : '공유'}
-            </button>
+            <div className="flex items-center gap-2">
+              {isOwner && (
+                <button
+                  onClick={handleDeleteForm}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  삭제
+                </button>
+              )}
+              <button
+                onClick={copyShareLink}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                {copied ? '링크 복사됨!' : '공유'}
+              </button>
+            </div>
           </div>
 
           {/* Progress Bar */}
