@@ -82,6 +82,34 @@ try {
   console.log('Forms migration check completed');
 }
 
+// Create templates table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT DEFAULT 'custom',
+    questions TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_preset INTEGER DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+// Create saved forms from templates table (user can save their forms as templates)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    form_id INTEGER,
+    template_name TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE
+  )
+`);
+
 // Create responses table
 db.exec(`
   CREATE TABLE IF NOT EXISTS responses (

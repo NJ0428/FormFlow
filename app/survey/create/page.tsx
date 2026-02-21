@@ -24,6 +24,15 @@ interface User {
   name: string | null;
 }
 
+interface Template {
+  id: number;
+  name: string;
+  description: string | null;
+  category: string;
+  questions: Question[];
+  is_preset: boolean;
+}
+
 export default function CreateSurveyPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,10 +50,19 @@ export default function CreateSurveyPage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [fetchingForm, setFetchingForm] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   useEffect(() => {
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      loadTemplates();
+    }
+  }, [user, selectedCategory]);
 
   const checkAuth = async () => {
     try {
@@ -108,6 +126,86 @@ export default function CreateSurveyPage() {
     } finally {
       setFetchingForm(false);
     }
+  };
+
+  const loadTemplates = async () => {
+    try {
+      // First, ensure templates are seeded
+      await fetch('/api/templates/seed', { method: 'POST' });
+
+      const categoryParam = selectedCategory === 'all' ? '' : `&category=${selectedCategory}`;
+      const response = await fetch(`/api/templates?userId=${user?.id}${categoryParam}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTemplates(data.templates);
+      }
+    } catch (error) {
+      console.error('Load templates error:', error);
+    }
+  };
+
+  const applyTemplate = (template: Template) => {
+    setSurveyTitle('');
+    setSurveyDescription('');
+    setQuestions([]);
+    setTimeout(() => {
+      setQuestions(template.questions.map((q, index) => ({
+        ...q,
+        id: `template-${Date.now()}-${index}`,
+      })));
+      setTemplateModalOpen(false);
+    }, 0);
+  };
+
+  const saveAsTemplate = async () => {
+    if (!surveyTitle.trim()) {
+      alert('설문조사 제목을 입력해주세요.');
+      return;
+    }
+    if (questions.length === 0) {
+      alert('최소 한 개의 질문이 필요합니다.');
+      return;
+    }
+
+    const templateName = prompt('저장할 템플릿 이름을 입력하세요:', surveyTitle);
+    if (!templateName) return;
+
+    try {
+      const response = await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          name: templateName,
+          description: surveyDescription,
+          category: 'custom',
+          questions: questions,
+        }),
+      });
+
+      if (response.ok) {
+        alert('템플릿이 저장되었습니다!');
+        loadTemplates();
+      } else {
+        alert('템플릿 저장에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Save template error:', error);
+      alert('서버 오류가 발생했습니다.');
+    }
+  };
+
+  const getCategoryLabel = (category: string) => {
+    const labels: { [key: string]: string } = {
+      customer_satisfaction: '고객 만족도',
+      event_attendance: '이벤트 참석',
+      employee_satisfaction: '직원 만족도',
+      product_feedback: '제품 피드백',
+      course_evaluation: '강의 평가',
+      wedding_rsvp: '웨딩 참석',
+      custom: '사용자 정의',
+    };
+    return labels[category] || category;
   };
 
   const handleLogout = async () => {
@@ -288,10 +386,19 @@ export default function CreateSurveyPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Page Header */}
-          <div className="mb-6">
+          <div className="mb-6 flex items-center justify-between">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               {isEditMode ? '설문조사 수정' : '새 설문조사 만들기'}
             </h1>
+            <button
+              onClick={() => setTemplateModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition shadow-lg"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+              </svg>
+              템플릿 불러오기
+            </button>
           </div>
 
           {/* Survey Header */}
@@ -524,6 +631,15 @@ export default function CreateSurveyPage() {
                 미리보기
               </button>
               <button
+                onClick={saveAsTemplate}
+                className="px-6 py-3 border-2 border-blue-600 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+                템플릿으로 저장
+              </button>
+              <button
                 onClick={() => router.push('/')}
                 className="px-6 py-3 border border-gray-300 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
               >
@@ -695,6 +811,160 @@ export default function CreateSurveyPage() {
               onSave={(condition) => updateCondition(conditionQuestionId, condition)}
               onCancel={closeConditionModal}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Template Selection Modal */}
+      {templateModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  템플릿 선택
+                </h2>
+                <button
+                  onClick={() => setTemplateModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Category Filter */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSelectedCategory('all')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    selectedCategory === 'all'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  전체
+                </button>
+                <button
+                  onClick={() => setSelectedCategory('customer_satisfaction')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    selectedCategory === 'customer_satisfaction'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  고객 만족도
+                </button>
+                <button
+                  onClick={() => setSelectedCategory('event_attendance')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    selectedCategory === 'event_attendance'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  이벤트 참석
+                </button>
+                <button
+                  onClick={() => setSelectedCategory('employee_satisfaction')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    selectedCategory === 'employee_satisfaction'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  직원 만족도
+                </button>
+                <button
+                  onClick={() => setSelectedCategory('product_feedback')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    selectedCategory === 'product_feedback'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  제품 피드백
+                </button>
+                <button
+                  onClick={() => setSelectedCategory('course_evaluation')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    selectedCategory === 'course_evaluation'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  강의 평가
+                </button>
+                <button
+                  onClick={() => setSelectedCategory('wedding_rsvp')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    selectedCategory === 'wedding_rsvp'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  웨딩 참석
+                </button>
+                <button
+                  onClick={() => setSelectedCategory('custom')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    selectedCategory === 'custom'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  내 템플릿
+                </button>
+              </div>
+            </div>
+
+            {/* Template List */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {templates.length === 0 ? (
+                <div className="text-center py-12">
+                  <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                  </svg>
+                  <p className="text-gray-500 dark:text-gray-400">
+                    해당 카테고리에 템플릿이 없습니다.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {templates.map((template) => (
+                    <div
+                      key={template.id}
+                      className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-purple-500 dark:hover:border-purple-500 hover:shadow-lg transition cursor-pointer"
+                      onClick={() => applyTemplate(template)}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {template.name}
+                        </h3>
+                        {template.is_preset && (
+                          <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-medium rounded-full">
+                            프리셋
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        {template.description}
+                      </p>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
+                          {getCategoryLabel(template.category)}
+                        </span>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {template.questions.length}개 질문
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
