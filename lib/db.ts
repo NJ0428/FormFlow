@@ -132,4 +132,45 @@ db.exec(`
   )
 `);
 
+// Create survey_invitations table for email invitations
+db.exec(`
+  CREATE TABLE IF NOT EXISTS survey_invitations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    form_id INTEGER NOT NULL,
+    email TEXT NOT NULL,
+    name TEXT,
+    status TEXT DEFAULT 'pending',
+    sent_at DATETIME,
+    responded_at DATETIME,
+    reminder_count INTEGER DEFAULT 0,
+    last_reminder_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE
+  )
+`);
+
+// Migration: Add survey_invitations table if it doesn't exist
+try {
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='survey_invitations'").get();
+  if (!tables) {
+    db.exec(`
+      CREATE TABLE survey_invitations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        form_id INTEGER NOT NULL,
+        email TEXT NOT NULL,
+        name TEXT,
+        status TEXT DEFAULT 'pending',
+        sent_at DATETIME,
+        responded_at DATETIME,
+        reminder_count INTEGER DEFAULT 0,
+        last_reminder_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE
+      )
+    `);
+  }
+} catch (error) {
+  console.log('Survey invitations migration check completed');
+}
+
 export default db;
