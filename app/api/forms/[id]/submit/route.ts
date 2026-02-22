@@ -18,7 +18,7 @@ export async function POST(
       return NextResponse.json({ error: '마감된 설문조사입니다.' }, { status: 400 });
     }
 
-    const { answers } = await request.json();
+    const { answers, email } = await request.json();
 
     const result = db.prepare(
       'INSERT INTO responses (form_id) VALUES (?)'
@@ -36,6 +36,16 @@ export async function POST(
         const answerValue = Array.isArray(answer) ? JSON.stringify(answer) : String(answer);
         insertAnswer.run(responseId, parseInt(questionId), answerValue);
       });
+    }
+
+    // 응답자의 이메일이 제공된 경우, 해당 초대 상태 업데이트
+    if (email && email.includes('@')) {
+      db.prepare(`
+        UPDATE survey_invitations
+        SET status = 'responded',
+            responded_at = CURRENT_TIMESTAMP
+        WHERE form_id = ? AND email = ? AND status = 'pending'
+      `).run(formId, email);
     }
 
     return NextResponse.json({ message: '응답이 제출되었습니다.' }, { status: 201 });

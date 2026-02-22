@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ThemeToggle from '@/components/ThemeToggle';
+import ShareModal from '@/components/ShareModal';
 
 interface User {
   id: number;
@@ -41,6 +42,9 @@ export default function MyPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordMessage, setPasswordMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
+  const [selectedFormTitle, setSelectedFormTitle] = useState<string>('');
 
   useEffect(() => {
     fetchData();
@@ -70,6 +74,12 @@ export default function MyPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const openShareModal = (formId: string, formTitle: string) => {
+    setSelectedFormId(formId);
+    setSelectedFormTitle(formTitle);
+    setShareModalOpen(true);
   };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
@@ -514,11 +524,17 @@ export default function MyPage() {
                             </div>
                             <div className="flex gap-2">
                               <button
+                                onClick={() => openShareModal(form.id.toString(), form.title)}
+                                className="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm"
+                              >
+                                공유
+                              </button>
+                              <button
                                 onClick={() => handleToggleOpen(form.id, form.is_open)}
                                 className={`flex-1 px-3 py-2 text-white rounded-lg transition text-sm ${
                                   form.is_open
                                     ? 'bg-orange-500 hover:bg-orange-600'
-                                    : 'bg-green-500 hover:bg-green-600'
+                                    : 'bg-green-600 hover:bg-green-700'
                                 }`}
                               >
                                 {form.is_open ? '마감' : '열기'}
@@ -563,6 +579,20 @@ export default function MyPage() {
           </Link>
         </div>
       </div>
+
+      {/* Share Modal */}
+      {shareModalOpen && selectedFormId && (
+        <ShareModal
+          isOpen={shareModalOpen}
+          onClose={() => {
+            setShareModalOpen(false);
+            setSelectedFormId(null);
+            setSelectedFormTitle('');
+          }}
+          formId={selectedFormId}
+          formTitle={selectedFormTitle}
+        />
+      )}
     </div>
   );
 }

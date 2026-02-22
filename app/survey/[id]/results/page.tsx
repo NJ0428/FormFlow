@@ -18,6 +18,7 @@ import {
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import ShareModal from '@/components/ShareModal';
 
 interface Answer {
   question_id: number;
@@ -65,6 +66,7 @@ export default function SurveyResultsPage() {
   const [viewMode, setViewMode] = useState<'overview' | 'responses'>('overview');
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -599,15 +601,26 @@ export default function SurveyResultsPage() {
               뒤로가기
             </button>
             <h1 className="text-lg font-semibold text-gray-900 dark:text-white">응답 분석</h1>
-            <button
-              onClick={() => setExportModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:shadow-lg transition text-sm font-medium"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              내보내기
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShareModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:shadow-lg transition text-sm font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                공유
+              </button>
+              <button
+                onClick={() => setExportModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:shadow-lg transition text-sm font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                내보내기
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -1092,6 +1105,16 @@ export default function SurveyResultsPage() {
           )}
         </div>
       </div>
+
+      {/* Share Modal */}
+      {shareModalOpen && form && (
+        <ShareModal
+          isOpen={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          formId={surveyId}
+          formTitle={form.title}
+        />
+      )}
     </div>
   );
 }
