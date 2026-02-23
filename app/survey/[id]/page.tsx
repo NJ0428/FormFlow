@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import ShareModal from '@/components/ShareModal';
+import { useDraftResponse } from '@/lib/useDraftResponse';
+import { getSessionId } from '@/lib/session';
 
 interface QuestionCondition {
   questionId: number;
@@ -43,6 +45,68 @@ export default function SurveyDetailPage() {
   const [copied, setCopied] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [sessionId, setSessionId] = useState<string>('');
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [showRestoreDraftModal, setShowRestoreDraftModal] = useState(false);
+  const [restoredDraftTimestamp, setRestoredDraftTimestamp] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  // Initialize session ID
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setSessionId(getSessionId(surveyId));
+    }
+  }, [surveyId]);
+
+  // Load draft answers on mount
+  useEffect(() => {
+    if (!sessionId || !form || draftLoaded) return;
+
+    const loadDraft = async () => {
+      try {
+        // First, check local storage
+        const storageKey = `draft_${surveyId}_${sessionId}`;
+        const localDraft = localStorage.getItem(storageKey);
+
+        if (localDraft) {
+          const draft = JSON.parse(localDraft);
+          if (draft.answers && Object.keys(draft.answers).length > 0) {
+            setRestoredDraftTimestamp(draft.updated_at);
+            setShowRestoreDraftModal(true);
+            setAnswers(draft.answers);
+            setDraftLoaded(true);
+            return;
+          }
+        }
+
+        // If no local draft, check server
+        const response = await fetch(`/api/forms/${surveyId}/draft?session_id=${sessionId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.answers && Object.keys(data.answers).length > 0) {
+            setRestoredDraftTimestamp(data.updated_at);
+            setShowRestoreDraftModal(true);
+            setAnswers(data.answers);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load draft:', error);
+      } finally {
+        setDraftLoaded(true);
+      }
+    };
+
+    loadDraft();
+  }, [sessionId, form, surveyId, draftLoaded]);
+
+  // Use draft auto-save hook
+  const { deleteDraft } = useDraftResponse({
+    formId: surveyId,
+    sessionId,
+    answers,
+    enabled: !!sessionId && !!form && !submitted && draftLoaded,
+    autosaveInterval: 10000,
+  });
 
   useEffect(() => {
     fetchForm();
@@ -70,6 +134,9 @@ export default function SurveyDetailPage() {
 
   const handleAnswerChange = (questionId: number, value: any) => {
     setAnswers({ ...answers, [questionId]: value });
+    setSaveStatus('saving');
+    // Reset save status after a delay
+    setTimeout(() => setSaveStatus('saved'), 1000);
   };
 
   const shouldShowQuestion = (question: Question): boolean => {
@@ -184,6 +251,8 @@ export default function SurveyDetailPage() {
 
       if (response.ok) {
         setSubmitted(true);
+        // Delete draft after successful submission
+        await deleteDraft();
       } else {
         const error = await response.json();
         alert(error.error || '제출에 실패했습니다.');
@@ -196,12 +265,74 @@ export default function SurveyDetailPage() {
     }
   };
 
+  const handleClearDraft = useCallback(() => {
+    setAnswers({});
+    setShowRestoreDraftModal(false);
+    setRestoredDraftTimestamp(null);
+    deleteDraft();
+  }, [deleteDraft]);
+
+  const formatDraftTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+
+    if (diffMins < 1) return '방금 전';
+    if (diffMins < 60) return `${diffMins}분 전`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}시간 전`;
+    return `${Math.floor(diffMins / 1440)}일 전`;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-purple-600 border-opacity-75 mx-auto"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-300">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Restore draft modal
+  if (showRestoreDraftModal && form) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full">
+          <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 text-center">
+            이어서 응답하시겠습니까?
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6 text-center">
+            {restoredDraftTimestamp && (
+              <>
+                이전에 작성하던 내용이 있습니다.
+                <br />
+                <span className="text-sm text-gray-500 dark:text-gray-500">
+                  ({formatDraftTimestamp(restoredDraftTimestamp)}에 저장됨)
+                </span>
+              </>
+            )}
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={handleClearDraft}
+              className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+            >
+              새로 시작하기
+            </button>
+            <button
+              onClick={() => setShowRestoreDraftModal(false)}
+              className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+            >
+              이어서 작성하기
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -323,9 +454,16 @@ export default function SurveyDetailPage() {
                 <span className="text-sm text-gray-600 dark:text-gray-400">
                   진행률
                 </span>
-                <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
-                  {Math.round(getProgress())}%
-                </span>
+                <div className="flex items-center gap-2">
+                  {saveStatus !== 'idle' && (
+                    <span className={`text-xs ${saveStatus === 'saving' ? 'text-yellow-600' : 'text-green-600'}`}>
+                      {saveStatus === 'saving' ? '저장 중...' : '저장됨'}
+                    </span>
+                  )}
+                  <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                    {Math.round(getProgress())}%
+                  </span>
+                </div>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                 <div

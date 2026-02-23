@@ -173,4 +173,47 @@ try {
   console.log('Survey invitations migration check completed');
 }
 
+// Create draft_responses table for auto-saving progress
+db.exec(`
+  CREATE TABLE IF NOT EXISTS draft_responses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    form_id INTEGER NOT NULL,
+    session_id TEXT NOT NULL,
+    answers TEXT NOT NULL,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE
+  )
+`);
+
+// Create index for faster lookups
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_draft_responses_form_session
+  ON draft_responses(form_id, session_id)
+`);
+
+// Migration: Add draft_responses table if it doesn't exist
+try {
+  const draftTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='draft_responses'").get();
+  if (!draftTables) {
+    db.exec(`
+      CREATE TABLE draft_responses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        form_id INTEGER NOT NULL,
+        session_id TEXT NOT NULL,
+        answers TEXT NOT NULL,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE
+      )
+    `);
+    db.exec(`
+      CREATE INDEX idx_draft_responses_form_session
+      ON draft_responses(form_id, session_id)
+    `);
+  }
+} catch (error) {
+  console.log('Draft responses migration check completed');
+}
+
 export default db;
