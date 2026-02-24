@@ -4,10 +4,11 @@ import db from '@/lib/db';
 // Save draft response
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const formId = parseInt(params.id);
+    const { id } = await params;
+    const formId = parseInt(id);
     const form = db.prepare('SELECT * FROM forms WHERE id = ?').get(formId);
 
     if (!form) {
@@ -52,10 +53,11 @@ export async function POST(
 // Get draft response
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const formId = parseInt(params.id);
+    const { id } = await params;
+    const formId = parseInt(id);
     const form = db.prepare('SELECT * FROM forms WHERE id = ?').get(formId);
 
     if (!form) {
@@ -93,10 +95,11 @@ export async function GET(
 // Delete draft response
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const formId = parseInt(params.id);
+    const { id } = await params;
+    const formId = parseInt(id);
     const form = db.prepare('SELECT * FROM forms WHERE id = ?').get(formId);
 
     if (!form) {
