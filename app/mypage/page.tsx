@@ -186,24 +186,77 @@ export default function MyPage() {
   };
 
   const handleDuplicateForm = async (formId: number) => {
+    if (!confirm('이 설문조사를 복제하시겠습니까?')) {
+      return;
+    }
+
     try {
       const res = await fetch(`/api/forms/${formId}/duplicate`, {
         method: 'POST',
       });
 
       if (res.ok) {
-        alert('설문조사가 복제되었습니다.');
-        // Refresh forms list
-        const formsRes = await fetch('/api/forms?my=true');
-        if (formsRes.ok) {
-          const formsData = await formsRes.json();
-          setForms(formsData.forms || []);
-        }
+        const data = await res.json();
+        alert('설문조사가 복제되었습니다. 편집 페이지로 이동합니다.');
+        router.push(`/survey/create?edit=${data.form.id}`);
       } else {
         const data = await res.json();
         alert(data.error || '복제에 실패했습니다.');
       }
     } catch (err) {
+      alert('서버 오류가 발생했습니다.');
+    }
+  };
+
+  const handleSaveAsTemplate = async (formId: number) => {
+    const form = forms.find(f => f.id === formId);
+    if (!form) return;
+
+    const templateName = prompt('템플릿 이름을 입력하세요:', form.title);
+    if (!templateName) return;
+
+    try {
+      // First, get the form with questions
+      const formRes = await fetch(`/api/forms/${formId}`);
+      if (!formRes.ok) {
+        alert('설문조사 정보를 가져오는데 실패했습니다.');
+        return;
+      }
+
+      const formData = await formRes.json();
+      const questions = formData.form.questions.map((q: any) => ({
+        id: q.id.toString(),
+        type: q.type,
+        title: q.title,
+        options: q.options,
+        required: q.required === 1,
+        condition: q.condition_question_id ? {
+          questionId: q.condition_question_id.toString(),
+          value: q.condition_value ? JSON.parse(q.condition_value) : undefined,
+          operator: q.condition_operator || 'equals'
+        } : undefined
+      }));
+
+      const res = await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          name: templateName,
+          description: form.description,
+          category: 'custom',
+          questions: questions,
+        }),
+      });
+
+      if (res.ok) {
+        alert('템플릿이 저장되었습니다!');
+      } else {
+        const data = await res.json();
+        alert(data.error || '템플릿 저장에 실패했습니다.');
+      }
+    } catch (err) {
+      console.error('Save template error:', err);
       alert('서버 오류가 발생했습니다.');
     }
   };
@@ -544,6 +597,12 @@ export default function MyPage() {
                                 className="flex-1 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm"
                               >
                                 복제
+                              </button>
+                              <button
+                                onClick={() => handleSaveAsTemplate(form.id)}
+                                className="flex-1 px-3 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition text-sm"
+                              >
+                                템플릿
                               </button>
                               <button
                                 onClick={() => router.push(`/survey/create?edit=${form.id}`)}

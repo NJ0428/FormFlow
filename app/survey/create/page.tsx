@@ -387,18 +387,32 @@ export default function CreateSurveyPage() {
         <div className="max-w-4xl mx-auto">
           {/* Page Header */}
           <div className="mb-6 flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              {isEditMode ? '설문조사 수정' : '새 설문조사 만들기'}
-            </h1>
-            <button
-              onClick={() => setTemplateModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition shadow-lg"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-              </svg>
-              템플릿 불러오기
-            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                {isEditMode ? '설문조사 수정' : '새 설문조사 만들기'}
+              </h1>
+              <div className="flex items-center gap-4 mt-2">
+                <button
+                  onClick={() => setTemplateModalOpen(true)}
+                  className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 flex items-center gap-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                  </svg>
+                  템플릿 불러오기
+                </button>
+                <span className="text-gray-300">|</span>
+                <button
+                  onClick={() => router.push('/templates')}
+                  className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  내 템플릿 관리
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Survey Header */}

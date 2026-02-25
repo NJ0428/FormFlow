@@ -217,6 +217,68 @@ export default function SurveyDetailPage() {
     }
   };
 
+  const handleDuplicateForm = async () => {
+    if (!confirm('이 설문조사를 복제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/forms/${surveyId}/duplicate`, {
+        method: 'POST',
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        alert('설문조사가 복제되었습니다. 편집 페이지로 이동합니다.');
+        router.push(`/survey/create?edit=${data.form.id}`);
+      } else {
+        const data = await res.json();
+        alert(data.error || '복제에 실패했습니다.');
+      }
+    } catch (err) {
+      alert('서버 오류가 발생했습니다.');
+    }
+  };
+
+  const handleSaveAsTemplate = async () => {
+    if (!form) return;
+
+    const templateName = prompt('템플릿 이름을 입력하세요:', form.title);
+    if (!templateName) return;
+
+    try {
+      const questions = form.questions.map((q) => ({
+        id: q.id.toString(),
+        type: q.type,
+        title: q.title,
+        options: q.options,
+        required: q.required,
+        condition: q.condition
+      }));
+
+      const res = await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: templateName,
+          description: form.description,
+          category: 'custom',
+          questions: questions,
+        }),
+      });
+
+      if (res.ok) {
+        alert('템플릿이 저장되었습니다!');
+      } else {
+        const data = await res.json();
+        alert(data.error || '템플릿 저장에 실패했습니다.');
+      }
+    } catch (err) {
+      console.error('Save template error:', err);
+      alert('서버 오류가 발생했습니다.');
+    }
+  };
+
   const validateAnswers = () => {
     if (!form) return false;
 
@@ -432,6 +494,24 @@ export default function SurveyDetailPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                     초대
+                  </button>
+                  <button
+                    onClick={handleDuplicateForm}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    복제
+                  </button>
+                  <button
+                    onClick={handleSaveAsTemplate}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    템플릿
                   </button>
                 </>
               )}
