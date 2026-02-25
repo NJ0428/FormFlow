@@ -29,28 +29,38 @@ export async function GET(
 // DELETE /api/templates/[id] - 템플릿 삭제
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const token = request.cookies.get('auth-token')?.value;
+    if (!token) {
+      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+    }
+
+    const { verifyToken } = await import('@/lib/auth');
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return NextResponse.json({ error: '유효하지 않은 토큰입니다.' }, { status: 401 });
+    }
+
+    const { id } = await params;
 
     // Check if template exists and belongs to user (or is preset)
-    const template = db.prepare('SELECT * FROM templates WHERE id = ?').get(params.id);
+    const template = db.prepare('SELECT * FROM templates WHERE id = ?').get(id);
 
     if (!template) {
       return NextResponse.json({ error: 'Template not found' }, { status: 404 });
     }
 
     if ((template as any).is_preset === 1) {
-      return NextResponse.json({ error: 'Cannot delete preset templates' }, { status: 403 });
+      return NextResponse.json({ error: '프리셋 템플릿은 삭제할 수 없습니다.' }, { status: 403 });
     }
 
-    if ((template as any).user_id !== parseInt(userId || '0')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if ((template as any).user_id !== decoded.id) {
+      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
-    db.prepare('DELETE FROM templates WHERE id = ?').run(params.id);
+    db.prepare('DELETE FROM templates WHERE id = ?').run(id);
 
     return NextResponse.json({ message: 'Template deleted successfully' });
   } catch (error) {

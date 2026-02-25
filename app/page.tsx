@@ -318,6 +318,7 @@ export default function Home() {
                   <h6>서비스</h6>
                   <ul className="links">
                     <li><a onClick={() => router.push('/survey')}>설문조사 게시판</a></li>
+                    <li><a onClick={() => router.push('/templates')}>템플릿 라이브러리</a></li>
                     <li><a onClick={() => router.push('/survey/create')}>설문조사 만들기</a></li>
                     <li><a onClick={() => router.push('/login')}>로그인</a></li>
                     <li><a onClick={() => router.push('/register')}>회원가입</a></li>
