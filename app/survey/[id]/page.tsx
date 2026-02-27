@@ -14,11 +14,15 @@ interface QuestionCondition {
 
 interface Question {
   id: number;
-  type: 'short_text' | 'long_text' | 'multiple' | 'single' | 'rating';
+  type: 'short_text' | 'long_text' | 'multiple' | 'single' | 'rating' | 'date' | 'file' | 'image_choice' | 'slider' | 'ranking';
   title: string;
   options?: string[];
   required: boolean;
   condition?: QuestionCondition;
+  min?: number;
+  max?: number;
+  step?: number;
+  sliderUnit?: string;
 }
 
 interface Form {
@@ -703,6 +707,176 @@ export default function SurveyDetailPage() {
                           >
                             {rating}
                           </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Date Picker */}
+                    {question.type === 'date' && (
+                      <input
+                        type="date"
+                        value={answers[question.id] || ''}
+                        onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition"
+                      />
+                    )}
+
+                    {/* File Upload */}
+                    {question.type === 'file' && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-center w-full">
+                          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                              <svg className="w-8 h-8 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                <span className="font-semibold">클릭하여 업로드</span>
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                PNG, JPG, PDF (최대 10MB)
+                              </p>
+                            </div>
+                            <input
+                              type="file"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  // For demo: just store filename
+                                  handleAnswerChange(question.id, file.name);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                        {answers[question.id] && (
+                          <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-sm text-blue-700 dark:text-blue-300">
+                              선택된 파일: {answers[question.id]}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Image Choice */}
+                    {question.type === 'image_choice' && question.options && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {question.options.map((option, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleAnswerChange(question.id, option)}
+                            className={`p-4 border-2 rounded-lg transition ${
+                              answers[question.id] === option
+                                ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/20'
+                                : 'border-gray-300 dark:border-gray-600 hover:border-pink-300 hover:bg-pink-50 dark:hover:bg-pink-900/10'
+                            }`}
+                          >
+                            <div className="aspect-square bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30 rounded-lg mb-2 flex items-center justify-center">
+                              {option.startsWith('http') ? (
+                                <img src={option} alt={option} className="w-full h-full object-cover rounded-lg" />
+                              ) : (
+                                <span className="text-3xl">🖼️</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-center text-gray-700 dark:text-gray-300 truncate">
+                              {option.startsWith('http') ? `옵션 ${idx + 1}` : option}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Slider */}
+                    {question.type === 'slider' && (
+                      <div className="space-y-4">
+                        <input
+                          type="range"
+                          min={question.min ?? 0}
+                          max={question.max ?? 100}
+                          step={question.step ?? 1}
+                          value={answers[question.id] || (question.min ?? 0)}
+                          onChange={(e) => handleAnswerChange(question.id, parseInt(e.target.value))}
+                          className="w-full accent-orange-600"
+                        />
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {question.min ?? 0}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                              {answers[question.id] || (question.min ?? 0)}
+                            </span>
+                            {question.sliderUnit && (
+                              <span className="text-sm text-gray-600 dark:text-gray-400">
+                                {question.sliderUnit}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {question.max ?? 100}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ranking (Drag & Drop) */}
+                    {question.type === 'ranking' && question.options && (
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                          항목을 드래그하여 순서를 변경하세요
+                        </p>
+                        {(answers[question.id] || question.options).map((option: string, idx: number) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 cursor-move"
+                            draggable
+                          >
+                            <span className="flex items-center justify-center w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full text-sm font-semibold">
+                              {idx + 1}
+                            </span>
+                            <span className="flex-1 text-gray-700 dark:text-gray-300">
+                              {option}
+                            </span>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => {
+                                  const currentOrder = answers[question.id] || question.options;
+                                  if (idx > 0) {
+                                    const newOrder = [...currentOrder];
+                                    [newOrder[idx - 1], newOrder[idx]] = [newOrder[idx], newOrder[idx - 1]];
+                                    handleAnswerChange(question.id, newOrder);
+                                  }
+                                }}
+                                disabled={idx === 0}
+                                className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const currentOrder = answers[question.id] || question.options;
+                                  if (idx < currentOrder.length - 1) {
+                                    const newOrder = [...currentOrder];
+                                    [newOrder[idx], newOrder[idx + 1]] = [newOrder[idx + 1], newOrder[idx]];
+                                    handleAnswerChange(question.id, newOrder);
+                                  }
+                                }}
+                                disabled={idx === (answers[question.id] || question.options).length - 1}
+                                className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     )}

@@ -49,6 +49,11 @@ interface QuestionStats {
   answerCount: Record<string, number>;
   answerPercentage: Record<string, number>;
   textAnswers: string[];
+  // For slider type
+  min?: number;
+  max?: number;
+  step?: number;
+  sliderUnit?: string;
 }
 
 interface Form {
@@ -1271,6 +1276,161 @@ export default function SurveyResultsPage() {
                       ) : (
                         <p className="text-gray-500 dark:text-gray-400 text-center py-4">응답이 없습니다</p>
                       )}
+                    </div>
+                  )}
+
+                  {/* Date Picker Answers */}
+                  {question.type === 'date' && (
+                    <div className="mt-4">
+                      {question.textAnswers.length > 0 ? (
+                        <div className="space-y-2">
+                          {question.textAnswers.map((answer, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                              <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              <span className="text-gray-700 dark:text-gray-300">
+                                {answer}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 dark:text-gray-400 text-center py-4">응답이 없습니다</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* File Upload Answers */}
+                  {question.type === 'file' && (
+                    <div className="mt-4">
+                      {question.textAnswers.length > 0 ? (
+                        <div className="space-y-2">
+                          {question.textAnswers.map((answer, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                              <span className="text-gray-700 dark:text-gray-300">
+                                {answer}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 dark:text-gray-400 text-center py-4">응답이 없습니다</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Image Choice Answers - Show as chart */}
+                  {question.type === 'image_choice' && (
+                    <div className="mt-6">
+                      <ResponsiveContainer width="100%" height={250}>
+                        <PieChart>
+                          <Pie
+                            data={Object.entries(question.answerCount).map(([label, value]) => ({
+                              name: label,
+                              value
+                            }))}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {Object.entries(question.answerCount).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="mt-4 space-y-2">
+                        {Object.entries(question.answerCount)
+                          .sort((a, b) => b[1] - a[1])
+                          .map(([option, count]) => (
+                            <div key={option} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                              <span className="text-gray-700 dark:text-gray-300">
+                                {option || '(미응답)'}
+                              </span>
+                              <span className="text-sm font-medium text-pink-600 dark:text-pink-400">
+                                {count}명 ({question.answerPercentage[option]?.toFixed(1)}%)
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Slider Answers - Show distribution */}
+                  {question.type === 'slider' && (
+                    <div className="mt-6">
+                      <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={Object.entries(question.answerCount).map(([label, value]) => ({ label, value }))}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="label" />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar dataKey="value" fill="#f97316" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                      {(() => {
+                        const values = question.textAnswers.map(a => parseFloat(a)).filter(v => !isNaN(v));
+                        if (values.length === 0) return null;
+                        const avg = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
+                        return (
+                          <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">평균: </span>
+                            <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                              {avg}
+                            </span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400 ml-1">
+                              {question.sliderUnit || ''}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Ranking Answers - Show average ranking */}
+                  {question.type === 'ranking' && question.options && (
+                    <div className="mt-4 space-y-3">
+                      {question.options.map((option) => {
+                        const rankings = question.textAnswers
+                          .map(a => {
+                            try {
+                              const parsed = JSON.parse(a);
+                              return parsed.indexOf(option) + 1;
+                            } catch {
+                              return -1;
+                            }
+                          })
+                          .filter(r => r > 0);
+
+                        if (rankings.length === 0) return null;
+
+                        const avgRank = (rankings.reduce((a, b) => a + b, 0) / rankings.length).toFixed(1);
+                        return (
+                          <div key={option} className="flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {option}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                                #{avgRank}
+                              </span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                (평균 순위)
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

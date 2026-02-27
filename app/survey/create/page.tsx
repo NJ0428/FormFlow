@@ -11,11 +11,16 @@ interface QuestionCondition {
 
 interface Question {
   id: string;
-  type: 'short_text' | 'long_text' | 'multiple' | 'single' | 'rating';
+  type: 'short_text' | 'long_text' | 'multiple' | 'single' | 'rating' | 'date' | 'file' | 'image_choice' | 'slider' | 'ranking';
   title: string;
   options?: string[];
   required: boolean;
   condition?: QuestionCondition;
+  // Additional properties for new types
+  min?: number;  // for slider
+  max?: number;  // for slider
+  step?: number; // for slider
+  sliderUnit?: string; // for slider (e.g., "점", "cm", etc.)
 }
 
 interface User {
@@ -511,6 +516,52 @@ export default function CreateSurveyPage() {
                 </svg>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">별점</span>
               </button>
+              {/* New Question Types */}
+              <button
+                onClick={() => addQuestion('date')}
+                className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition"
+              >
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">날짜</span>
+              </button>
+              <button
+                onClick={() => addQuestion('file')}
+                className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
+              >
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">파일</span>
+              </button>
+              <button
+                onClick={() => addQuestion('image_choice')}
+                className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/20 transition"
+              >
+                <svg className="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">이미지</span>
+              </button>
+              <button
+                onClick={() => addQuestion('slider')}
+                className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition"
+              >
+                <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">슬라이더</span>
+              </button>
+              <button
+                onClick={() => addQuestion('ranking')}
+                className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition"
+              >
+                <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">순서</span>
+              </button>
             </div>
           </div>
 
@@ -528,6 +579,11 @@ export default function CreateSurveyPage() {
                     {question.type === 'single' && '단일 선택'}
                     {question.type === 'multiple' && '복수 선택'}
                     {question.type === 'rating' && '별점'}
+                    {question.type === 'date' && '날짜 선택'}
+                    {question.type === 'file' && '파일 업로드'}
+                    {question.type === 'image_choice' && '이미지 선택'}
+                    {question.type === 'slider' && '슬라이더'}
+                    {question.type === 'ranking' && '순서 매기기'}
                   </span>
                   {question.condition && (
                     <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full">
@@ -778,6 +834,160 @@ export default function CreateSurveyPage() {
                                 {rating}
                               </button>
                             ))}
+                          </div>
+                        )}
+
+                        {/* Date Picker Question */}
+                        {question.type === 'date' && (
+                          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              응답자가 날짜를 선택할 수 있습니다.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* File Upload Question */}
+                        {question.type === 'file' && (
+                          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg space-y-3">
+                            <p className="text-sm text-blue-600 dark:text-blue-400">
+                              응답자가 파일을 업로드할 수 있습니다.
+                            </p>
+                            <div className="text-xs text-blue-500 dark:text-blue-500">
+                              • 지원 가능: 이미지, PDF, 문서 파일<br />
+                              • 최대 파일 크기: 10MB
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Image Choice Question */}
+                        {question.type === 'image_choice' && (
+                          <div className="space-y-3">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                              이미지 옵션을 추가하세요 (이미지 URL 또는 파일 업로드):
+                            </p>
+                            {(question.options || ['']).map((option, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={option}
+                                  onChange={(e) => updateOption(question.id, idx, e.target.value)}
+                                  placeholder={`이미지 ${idx + 1} URL 또는 설명`}
+                                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                />
+                                {question.options && question.options.length > 1 && (
+                                  <button
+                                    onClick={() => removeOption(question.id, idx)}
+                                    className="text-red-500 hover:text-red-700 p-2"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                            <button
+                              onClick={() => addOption(question.id)}
+                              className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 flex items-center gap-1"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              이미지 옵션 추가
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Slider Question */}
+                        {question.type === 'slider' && (
+                          <div className="space-y-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                            <div className="grid grid-cols-3 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">최솟값</label>
+                                <input
+                                  type="number"
+                                  value={question.min ?? 0}
+                                  onChange={(e) => updateQuestion(question.id, { min: parseInt(e.target.value) })}
+                                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">최댓값</label>
+                                <input
+                                  type="number"
+                                  value={question.max ?? 100}
+                                  onChange={(e) => updateQuestion(question.id, { max: parseInt(e.target.value) })}
+                                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">단위</label>
+                                <input
+                                  type="text"
+                                  value={question.sliderUnit ?? ''}
+                                  onChange={(e) => updateQuestion(question.id, { sliderUnit: e.target.value })}
+                                  placeholder="예: 점, cm"
+                                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">미리보기</label>
+                              <input
+                                type="range"
+                                min={question.min ?? 0}
+                                max={question.max ?? 100}
+                                step={question.step ?? 1}
+                                disabled
+                                className="w-full"
+                              />
+                              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>{question.min ?? 0}</span>
+                                <span>{question.max ?? 100}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Ranking Question */}
+                        {question.type === 'ranking' && (
+                          <div className="space-y-3">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                              순서를 매길 항목들을 추가하세요:
+                            </p>
+                            {(question.options || ['']).map((option, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <span className="flex items-center justify-center w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full text-sm font-semibold">
+                                  {idx + 1}
+                                </span>
+                                <input
+                                  type="text"
+                                  value={option}
+                                  onChange={(e) => updateOption(question.id, idx, e.target.value)}
+                                  placeholder={`항목 ${idx + 1}`}
+                                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                />
+                                {question.options && question.options.length > 1 && (
+                                  <button
+                                    onClick={() => removeOption(question.id, idx)}
+                                    className="text-red-500 hover:text-red-700 p-2"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                            <button
+                              onClick={() => addOption(question.id)}
+                              className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 flex items-center gap-1"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              항목 추가
+                            </button>
                           </div>
                         )}
                       </div>
