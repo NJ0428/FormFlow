@@ -305,10 +305,26 @@ export default function SurveyDetailPage() {
     setSubmitting(true);
 
     try {
+      // 위치 정보 수집 (선택적)
+      let location = null;
+      try {
+        // 시간대를 기반으로 대략적인 위치 추정
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        // 간단한 위치 추정 (실제 프로덕션에서는 IP 기반 지오로케이션 API 사용 권장)
+        location = {
+          country: null, // 사용자 동의가 필요하므로 null
+          city: timeZone?.split('/')[0] || null, // 시간대에서 대략적인 지역 정보
+          latitude: null,
+          longitude: null,
+        };
+      } catch (err) {
+        console.log('Location detection skipped:', err);
+      }
+
       const response = await fetch(`/api/forms/${surveyId}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers }),
+        body: JSON.stringify({ answers, location }),
       });
 
       if (response.ok) {

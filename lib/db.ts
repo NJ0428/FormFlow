@@ -216,4 +216,25 @@ try {
   console.log('Draft responses migration check completed');
 }
 
+// Migration: Add location columns to responses table for geographic statistics
+try {
+  const responseColumns = db.pragma('table_info(responses)');
+  const responseColumnNames = responseColumns.map((col: any) => col.name);
+
+  if (!responseColumnNames.includes('country')) {
+    db.exec('ALTER TABLE responses ADD COLUMN country TEXT');
+  }
+  if (!responseColumnNames.includes('city')) {
+    db.exec('ALTER TABLE responses ADD COLUMN city TEXT');
+  }
+  if (!responseColumnNames.includes('latitude')) {
+    db.exec('ALTER TABLE responses ADD COLUMN latitude REAL');
+  }
+  if (!responseColumnNames.includes('longitude')) {
+    db.exec('ALTER TABLE responses ADD COLUMN longitude REAL');
+  }
+} catch (error) {
+  console.log('Location columns migration check completed');
+}
+
 export default db;

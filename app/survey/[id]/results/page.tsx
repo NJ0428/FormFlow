@@ -14,6 +14,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  LineChart,
+  Line,
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
@@ -32,6 +34,10 @@ interface Response {
   id: number;
   submitted_at: string;
   answers: Answer[];
+  country?: string | null;
+  city?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface QuestionStats {
@@ -63,10 +69,12 @@ export default function SurveyResultsPage() {
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'overview' | 'responses'>('overview');
+  const [viewMode, setViewMode] = useState<'overview' | 'responses' | 'crosstab'>('overview');
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [crossTabQuestion1, setCrossTabQuestion1] = useState<number | null>(null);
+  const [crossTabQuestion2, setCrossTabQuestion2] = useState<number | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -174,6 +182,123 @@ export default function SurveyResultsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 지리적 위치 기반 통계 데이터 계산
+  const getLocationStats = () => {
+    const locationCount: Record<string, number> = {};
+
+    responses.forEach(response => {
+      const locationKey = response.city || response.country || '알 수 없음';
+      locationCount[locationKey] = (locationCount[locationKey] || 0) + 1;
+    });
+
+    return Object.entries(locationCount)
+      .map(([location, count]) => ({ location, count }))
+      .sort((a, b) => b.count - a.count);
+  };
+
+  // 교차 분석 데이터 계산
+  const getCrossTabData = (question1Id: number, question2Id: number) => {
+    const q1 = questions.find(q => q.id === question1Id);
+    const q2 = questions.find(q => q.id === question2Id);
+
+    if (!q1 || !q2) return null;
+
+    // 두 질문의 답변 조합별 응답 수 집계
+    const crossTabData: Record<string, Record<string, number>> = {};
+
+    responses.forEach(response => {
+      const answer1 = response.answers.find(a => a.question_id === question1Id);
+      const answer2 = response.answers.find(a => a.question_id === question2Id);
+
+      if (answer1?.answer && answer2?.answer) {
+        let val1 = answer1.answer as string;
+        let val2 = answer2.answer as string;
+
+        // multiple type인 경우 JSON 파싱
+        if (q1.type === 'multiple') {
+          const parsed = JSON.parse(val1);
+          val1 = parsed.join(', ');
+        }
+        if (q2.type === 'multiple') {
+          const parsed = JSON.parse(val2);
+          val2 = parsed.join(', ');
+        }
+
+        if (!crossTabData[val1]) {
+          crossTabData[val1] = {};
+        }
+        crossTabData[val1][val2] = (crossTabData[val1][val2] || 0) + 1;
+      }
+    });
+
+    // 고유한 값 목록 추출
+    const q1Values = Object.keys(crossTabData).sort();
+    const q2Values = Array.from(new Set(
+      Object.values(crossTabData).flatMap(obj => Object.keys(obj))
+    )).sort();
+
+    return {
+      q1Title: q1.title,
+      q2Title: q2.title,
+      crossTabData,
+      q1Values,
+      q2Values,
+    };
+  };
+
+  // 별점 질문에 대한 상세 통계 계산
+  const getRatingStatistics = (question: QuestionStats) => {
+    if (question.type !== 'rating' || question.totalResponses === 0) return null;
+
+    const ratings: number[] = [];
+    Object.entries(question.answerCount).forEach(([rating, count]) => {
+      for (let i = 0; i < count; i++) {
+        ratings.push(parseFloat(rating));
+      }
+    });
+
+    if (ratings.length === 0) return null;
+
+    // 평균
+    const mean = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+
+    // 분산
+    const variance = ratings.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / ratings.length;
+
+    // 표준편차
+    const standardDeviation = Math.sqrt(variance);
+
+    return {
+      mean: mean.toFixed(2),
+      variance: variance.toFixed(2),
+      standardDeviation: standardDeviation.toFixed(2),
+      median: ratings.sort((a, b) => a - b)[Math.floor(ratings.length / 2)].toFixed(0),
+    };
+  };
+
+  // 응답 추이 데이터 계산
+  const getResponseTrendData = () => {
+    if (responses.length === 0) return [];
+
+    // 응답 시간을 기준으로 일별/시간별 집계
+    const responseCountByDate: Record<string, number> = {};
+
+    responses.forEach(response => {
+      const date = new Date(response.submitted_at);
+      const dateKey = date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+      responseCountByDate[dateKey] = (responseCountByDate[dateKey] || 0) + 1;
+    });
+
+    // 날짜 순으로 정렬
+    return Object.entries(responseCountByDate)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateA.getTime() - dateB.getTime();
+      });
   };
 
   const exportToCSV = (exportType: 'individual' | 'aggregate' = 'individual') => {
@@ -903,6 +1028,16 @@ export default function SurveyResultsPage() {
               📊 통계 보기
             </button>
             <button
+              onClick={() => setViewMode('crosstab')}
+              className={`px-6 py-2 rounded-lg transition ${
+                viewMode === 'crosstab'
+                  ? 'bg-purple-600 text-white'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              🔄 교차 분석
+            </button>
+            <button
               onClick={() => setViewMode('responses')}
               className={`px-6 py-2 rounded-lg transition ${
                 viewMode === 'responses'
@@ -917,6 +1052,84 @@ export default function SurveyResultsPage() {
           {/* Overview Mode */}
           {viewMode === 'overview' && (
             <div className="space-y-6">
+              {/* 응답 추이 그래프 */}
+              {responses.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">응답 추이</h3>
+                  </div>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={getResponseTrendData()}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        stroke="#8884d8"
+                        strokeWidth={2}
+                        name="응답 수"
+                        dot={{ fill: '#8884d8', r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* 지리적 위치 기반 통계 */}
+              {responses.length > 0 && (() => {
+                const locationData = getLocationStats();
+                return locationData.length > 0 && (
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">지리적 위치 분포</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {locationData.slice(0, 9).map((item, idx) => {
+                        const percentage = ((item.count / responses.length) * 100).toFixed(1);
+                        const colors = ['bg-purple-100 dark:bg-purple-900/30', 'bg-blue-100 dark:bg-blue-900/30', 'bg-green-100 dark:bg-green-900/30', 'bg-yellow-100 dark:bg-yellow-900/30', 'bg-pink-100 dark:bg-pink-900/30', 'bg-indigo-100 dark:bg-indigo-900/30'];
+                        return (
+                          <div key={idx} className={`${colors[idx % colors.length]} rounded-xl p-4`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                                {item.location}
+                              </span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                {percentage}%
+                              </span>
+                            </div>
+                            <div className="flex items-end gap-2">
+                              <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                                {item.count}
+                              </span>
+                              <span className="text-sm text-gray-600 dark:text-gray-400 pb-1">
+                                명
+                              </span>
+                            </div>
+                            <div className="mt-2 bg-white dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                              <div
+                                className="bg-purple-600 h-full rounded-full transition-all duration-500"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {questions.map((question, index) => (
                 <div key={question.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
                   <div className="flex items-start justify-between mb-4">
@@ -951,15 +1164,41 @@ export default function SurveyResultsPage() {
                   {(question.type === 'single' || question.type === 'multiple' || question.type === 'rating') && (
                     <div className="mt-6">
                       {question.type === 'rating' ? (
-                        <ResponsiveContainer width="100%" height={200}>
-                          <BarChart data={Object.entries(question.answerCount).map(([label, value]) => ({ label, value }))}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="label" label="평점" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="value" fill="#8884d8" />
-                          </BarChart>
-                        </ResponsiveContainer>
+                        <>
+                          {/* 상세 통계 카드 */}
+                          {(() => {
+                            const stats = getRatingStatistics(question);
+                            return stats && (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                                <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 text-center">
+                                  <p className="text-xs text-purple-600 dark:text-purple-400 font-medium mb-1">평균</p>
+                                  <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{stats.mean}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 text-center">
+                                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">중앙값</p>
+                                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{stats.median}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4 text-center">
+                                  <p className="text-xs text-green-600 dark:text-green-400 font-medium mb-1">분산</p>
+                                  <p className="text-2xl font-bold text-green-700 dark:text-green-300">{stats.variance}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-4 text-center">
+                                  <p className="text-xs text-orange-600 dark:text-orange-400 font-medium mb-1">표준편차</p>
+                                  <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">{stats.standardDeviation}</p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                          <ResponsiveContainer width="100%" height={200}>
+                            <BarChart data={Object.entries(question.answerCount).map(([label, value]) => ({ label, value }))}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="label" label="평점" />
+                              <YAxis />
+                              <Tooltip />
+                              <Bar dataKey="value" fill="#8884d8" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </>
                       ) : (
                         <ResponsiveContainer width="100%" height={250}>
                           <PieChart>
@@ -1036,6 +1275,124 @@ export default function SurveyResultsPage() {
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Cross Tabulation Mode */}
+          {viewMode === 'crosstab' && (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm2-6V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">교차 분석</h3>
+                </div>
+
+                {/* 질문 선택 UI */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      첫 번째 질문 (행)
+                    </label>
+                    <select
+                      value={crossTabQuestion1 || ''}
+                      onChange={(e) => setCrossTabQuestion1(e.target.value ? Number(e.target.value) : null)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">질문을 선택하세요</option>
+                      {questions
+                        .filter(q => q.type === 'single' || q.type === 'multiple' || q.type === 'rating')
+                        .map(q => (
+                          <option key={q.id} value={q.id}>
+                            {q.title} ({q.type === 'single' ? '단일 선택' : q.type === 'multiple' ? '복수 선택' : '별점'})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      두 번째 질문 (열)
+                    </label>
+                    <select
+                      value={crossTabQuestion2 || ''}
+                      onChange={(e) => setCrossTabQuestion2(e.target.value ? Number(e.target.value) : null)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">질문을 선택하세요</option>
+                      {questions
+                        .filter(q => q.type === 'single' || q.type === 'multiple' || q.type === 'rating')
+                        .map(q => (
+                          <option key={q.id} value={q.id}>
+                            {q.title} ({q.type === 'single' ? '단일 선택' : q.type === 'multiple' ? '복수 선택' : '별점'})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* 교차 테이블 표시 */}
+                {crossTabQuestion1 && crossTabQuestion2 && (() => {
+                  const crossTabData = getCrossTabData(crossTabQuestion1, crossTabQuestion2);
+                  if (!crossTabData) return null;
+
+                  return (
+                    <div className="mt-6">
+                      <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
+                        {crossTabData.q1Title} × {crossTabData.q2Title}
+                      </h4>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="bg-gray-50 dark:bg-gray-700">
+                              <th className="px-4 py-3 border border-gray-200 dark:border-gray-600 text-left text-sm font-medium text-gray-700 dark:text-gray-300">
+                                {crossTabData.q1Title}
+                              </th>
+                              {crossTabData.q2Values.map(val => (
+                                <th key={val} className="px-4 py-3 border border-gray-200 dark:border-gray-600 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                                  {val}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {crossTabData.q1Values.map((q1Val, idx) => {
+                              const rowMax = Math.max(
+                                ...crossTabData.q2Values.map(q2Val => crossTabData.crossTabData[q1Val]?.[q2Val] || 0)
+                              );
+                              const intensityClass = rowMax > 0
+                                ? `rgba(136, 132, 216, ${0.1 + (rowMax / Math.max(...Object.values(crossTabData.crossTabData).flatMap(Object.values))) * 0.8})`
+                                : 'transparent';
+
+                              return (
+                                <tr key={q1Val} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                  <td className="px-4 py-3 border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-900 dark:text-white">
+                                    {q1Val}
+                                  </td>
+                                  {crossTabData.q2Values.map(q2Val => {
+                                    const count = crossTabData.crossTabData[q1Val]?.[q2Val] || 0;
+                                    return (
+                                      <td
+                                        key={q2Val}
+                                        className="px-4 py-3 border border-gray-200 dark:border-gray-600 text-center text-sm text-gray-900 dark:text-white"
+                                        style={{
+                                          backgroundColor: count > 0 ? `rgba(136, 132, 216, ${Math.min(count / 10, 0.8)})` : 'transparent'
+                                        }}
+                                      >
+                                        {count > 0 ? count : '-'}
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           )}
 

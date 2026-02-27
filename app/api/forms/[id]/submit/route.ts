@@ -18,11 +18,11 @@ export async function POST(
       return NextResponse.json({ error: '마감된 설문조사입니다.' }, { status: 400 });
     }
 
-    const { answers, email } = await request.json();
+    const { answers, email, location } = await request.json();
 
     const result = db.prepare(
-      'INSERT INTO responses (form_id) VALUES (?)'
-    ).run(formId);
+      'INSERT INTO responses (form_id, country, city, latitude, longitude) VALUES (?, ?, ?, ?, ?)'
+    ).run(formId, location?.country || null, location?.city || null, location?.latitude || null, location?.longitude || null);
 
     const responseId = result.lastInsertRowid as number;
 
