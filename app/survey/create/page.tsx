@@ -59,6 +59,10 @@ export default function CreateSurveyPage() {
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
+  // Category and Tags state
+  const [category, setCategory] = useState<string>('other');
+  const [tags, setTags] = useState<string>('');
+
   useEffect(() => {
     checkAuth();
   }, []);
@@ -103,6 +107,8 @@ export default function CreateSurveyPage() {
         setSurveyTitle(form.title);
         setSurveyDescription(form.description || '');
         setDeadline(form.deadline ? form.deadline.split('T')[0] : '');
+        setCategory(form.category || 'other');
+        setTags(form.tags ? form.tags.join(', ') : '');
 
         // Convert questions to match the Question interface
         const convertedQuestions = form.questions.map((q: any) => ({
@@ -316,6 +322,9 @@ export default function CreateSurveyPage() {
       const url = isEditMode ? `/api/forms/${editId}` : '/api/forms';
       const method = isEditMode ? 'PUT' : 'POST';
 
+      // Parse tags from comma-separated string
+      const tagArray = tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -324,6 +333,8 @@ export default function CreateSurveyPage() {
           description: surveyDescription,
           deadline: deadline || null,
           questions,
+          category,
+          tags: tagArray,
         }),
       });
 
@@ -463,6 +474,45 @@ export default function CreateSurveyPage() {
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   마감 기한을 설정하지 않으면 무기한 응답 가능합니다.
                 </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    카테고리
+                  </label>
+                  <select
+                    id="category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white transition"
+                  >
+                    <option value="customer_satisfaction">고객 만족도</option>
+                    <option value="event_attendance">이벤트 참석</option>
+                    <option value="employee_satisfaction">직원 만족도</option>
+                    <option value="product_feedback">제품 피드백</option>
+                    <option value="course_evaluation">강의 평가</option>
+                    <option value="research">연구 조사</option>
+                    <option value="hr">인사/채용</option>
+                    <option value="marketing">마케팅</option>
+                    <option value="other">기타</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    태그
+                  </label>
+                  <input
+                    id="tags"
+                    type="text"
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white transition"
+                    placeholder="쉼표로 구분 (예: 설문, 조사, 피드백)"
+                  />
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    태그를 입력하면 검색이 더 쉬워집니다.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

@@ -30,6 +30,10 @@ export async function GET(
       } : undefined
     }));
 
+    // Fetch tags for the form
+    const tags = db.prepare('SELECT tag FROM form_tags WHERE form_id = ?').all(formId);
+    const tagArray = tags.map((t: any) => t.tag);
+
     // Check if current user is the owner
     let isOwner = false;
     const token = request.cookies.get('auth-token')?.value;
@@ -40,7 +44,7 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ form: { ...form, questions: parsedQuestions }, isOwner });
+    return NextResponse.json({ form: { ...form, questions: parsedQuestions, tags: tagArray }, isOwner });
   } catch (error) {
     console.error('Get form error:', error);
     return NextResponse.json({ error: '폼을 가져올 수 없습니다.' }, { status: 500 });
@@ -70,15 +74,31 @@ export async function PUT(
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
-    const { title, description, is_open, deadline, questions } = await request.json();
+    const { title, description, is_open, deadline, questions, category, tags } = await request.json();
 
     db.prepare(
-      'UPDATE forms SET title = ?, description = ?, deadline = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-    ).run(title, description || null, deadline || null, formId);
+      'UPDATE forms SET title = ?, description = ?, deadline = ?, category = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+    ).run(title, description || null, deadline || null, category || 'other', formId);
 
     // If is_open is provided, update it (for toggle functionality)
     if (is_open !== undefined) {
       db.prepare('UPDATE forms SET is_open = ? WHERE id = ?').run(is_open ? 1 : 0, formId);
+    }
+
+    // Update tags if provided
+    if (tags !== undefined) {
+      // Delete existing tags
+      db.prepare('DELETE FROM form_tags WHERE form_id = ?').run(formId);
+
+      // Insert new tags
+      if (Array.isArray(tags) && tags.length > 0) {
+        const insertTag = db.prepare('INSERT INTO form_tags (form_id, tag) VALUES (?, ?)');
+        tags.forEach((tag: string) => {
+          if (tag && tag.trim()) {
+            insertTag.run(formId, tag.trim());
+          }
+        });
+      }
     }
 
     // If questions are provided, update them
@@ -113,6 +133,10 @@ export async function PUT(
       'SELECT * FROM questions WHERE form_id = ? ORDER BY order_index'
     ).all(formId);
 
+    // Get updated tags
+    const updatedTags = db.prepare('SELECT tag FROM form_tags WHERE form_id = ?').all(formId);
+    const tagArray = updatedTags.map((t: any) => t.tag);
+
     // Parse options and conditions
     const parsedQuestions = updatedQuestions.map((q: any) => ({
       ...q,
@@ -124,7 +148,7 @@ export async function PUT(
       } : undefined
     }));
 
-    return NextResponse.json({ form: { ...updatedForm, questions: parsedQuestions } });
+    return NextResponse.json({ form: { ...updatedForm, questions: parsedQuestions, tags: tagArray } });
   } catch (error) {
     console.error('Update form error:', error);
     return NextResponse.json({ error: '폼 수정에 실패했습니다.' }, { status: 500 });
