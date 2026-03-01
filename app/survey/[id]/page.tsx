@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import ShareModal from '@/components/ShareModal';
 import { useDraftResponse } from '@/lib/useDraftResponse';
 import { getSessionId } from '@/lib/session';
+import { CATEGORIES } from '@/lib/categories';
 
 interface QuestionCondition {
   questionId: number;
@@ -34,6 +35,8 @@ interface Form {
   is_open: number;
   deadline: string | null;
   questions: Question[];
+  category?: string;
+  tags?: string[];
 }
 
 export default function SurveyDetailPage() {
@@ -581,6 +584,18 @@ export default function SurveyDetailPage() {
         <div className="max-w-3xl mx-auto">
           {/* Survey Header */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-6">
+            <div className="mb-4 flex items-center gap-2 flex-wrap">
+              {form.category && (
+                <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium rounded-full">
+                  {CATEGORIES[form.category as keyof typeof CATEGORIES] || form.category}
+                </span>
+              )}
+              {form.tags && form.tags.length > 0 && form.tags.map((tag, index) => (
+                <span key={index} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium rounded-full">
+                  #{tag}
+                </span>
+              ))}
+            </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
               {form.title}
             </h1>

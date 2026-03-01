@@ -237,4 +237,53 @@ try {
   console.log('Location columns migration check completed');
 }
 
+// Migration: Add category column to forms table for classification
+try {
+  const formColumns = db.pragma('table_info(forms)');
+  const formColumnNames = formColumns.map((col: any) => col.name);
+
+  if (!formColumnNames.includes('category')) {
+    db.exec("ALTER TABLE forms ADD COLUMN category TEXT DEFAULT 'other'");
+  }
+} catch (error) {
+  console.log('Category column migration check completed');
+}
+
+// Create form_tags table for tag filtering
+db.exec(`
+  CREATE TABLE IF NOT EXISTS form_tags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    form_id INTEGER NOT NULL,
+    tag TEXT NOT NULL,
+    FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE,
+    UNIQUE(form_id, tag)
+  )
+`);
+
+// Create index for faster tag lookups
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_form_tags_tag ON form_tags(tag)
+`);
+
+// Migration: Ensure form_tags table exists (for existing databases)
+try {
+  const tagTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='form_tags'").get();
+  if (!tagTables) {
+    db.exec(`
+      CREATE TABLE form_tags (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        form_id INTEGER NOT NULL,
+        tag TEXT NOT NULL,
+        FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE,
+        UNIQUE(form_id, tag)
+      )
+    `);
+    db.exec(`
+      CREATE INDEX idx_form_tags_tag ON form_tags(tag)
+    `);
+  }
+} catch (error) {
+  console.log('Form tags migration check completed');
+}
+
 export default db;

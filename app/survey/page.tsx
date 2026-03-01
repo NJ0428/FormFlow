@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
+import { CATEGORIES } from '@/lib/categories';
 
 interface Form {
   id: number;
@@ -12,6 +13,8 @@ interface Form {
   created_at: string;
   response_count: number;
   is_open: number;
+  category: string;
+  tags?: string[];
 }
 
 interface User {
@@ -26,6 +29,8 @@ export default function SurveyListPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'closed'>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterTag, setFilterTag] = useState<string>('');
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -76,7 +81,11 @@ export default function SurveyListPage() {
       const matchesStatus = filterStatus === 'all' ||
         (filterStatus === 'open' && form.is_open === 1) ||
         (filterStatus === 'closed' && form.is_open === 0);
-      return matchesSearch && matchesStatus;
+      const matchesCategory = filterCategory === 'all' || form.category === filterCategory;
+      const matchesTag = !filterTag || (form.tags && form.tags.some(tag =>
+        tag.toLowerCase().includes(filterTag.toLowerCase())
+      ));
+      return matchesSearch && matchesStatus && matchesCategory && matchesTag;
     });
   };
 
@@ -206,9 +215,9 @@ export default function SurveyListPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {/* Search and Filter Bar */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 mb-8">
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col gap-4">
             {/* Search Input */}
-            <div className="flex-1 relative">
+            <div className="relative">
               <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -221,7 +230,37 @@ export default function SurveyListPage() {
               />
             </div>
 
-            {/* Filter Buttons */}
+            {/* Category and Tag Filters */}
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Category Filter */}
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">카테고리</label>
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                >
+                  <option value="all">전체 카테고리</option>
+                  {Object.entries(CATEGORIES).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tag Filter */}
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">태그</label>
+                <input
+                  type="text"
+                  value={filterTag}
+                  onChange={(e) => setFilterTag(e.target.value)}
+                  placeholder="태그로 검색..."
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                />
+              </div>
+            </div>
+
+            {/* Status Filter Buttons */}
             <div className="flex gap-2">
               <button
                 onClick={() => setFilterStatus('all')}
@@ -260,7 +299,13 @@ export default function SurveyListPage() {
           <div className="mt-4 text-center">
             <p className="text-gray-600">
               총 <span className="font-bold text-indigo-600">{filteredForms.length}</span>개의 설문조사
-              {searchTerm && <span className="text-gray-500"> (검색: &quot;{searchTerm}&quot;)</span>}
+              {(searchTerm || filterCategory !== 'all' || filterTag) && (
+                <span className="text-gray-500">
+                  {searchTerm && ` (검색: "${searchTerm}")`}
+                  {filterCategory !== 'all' && ` (카테고리: ${CATEGORIES[filterCategory as keyof typeof CATEGORIES]})`}
+                  {filterTag && ` (태그: "${filterTag}")`}
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -319,6 +364,20 @@ export default function SurveyListPage() {
                     {form.description}
                   </p>
                 )}
+
+                {/* Category and Tags */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {form.category && (
+                    <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium rounded-full">
+                      {CATEGORIES[form.category as keyof typeof CATEGORIES] || form.category}
+                    </span>
+                  )}
+                  {form.tags && form.tags.slice(0, 3).map((tag, index) => (
+                    <span key={index} className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
 
                 {/* Divider */}
                 <div className="border-t border-gray-100 my-4"></div>
