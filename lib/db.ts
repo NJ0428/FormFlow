@@ -286,4 +286,74 @@ try {
   console.log('Form tags migration check completed');
 }
 
+// Create form_collaborators table for collaboration
+db.exec(`
+  CREATE TABLE IF NOT EXISTS form_collaborators (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    form_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    permission_level TEXT NOT NULL CHECK (permission_level IN ('owner', 'editor', 'viewer')),
+    added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(form_id, user_id)
+  )
+`);
+
+// Migration: Ensure form_collaborators table exists (for existing databases)
+try {
+  const collabTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='form_collaborators'").get();
+  if (!collabTables) {
+    db.exec(`
+      CREATE TABLE form_collaborators (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        form_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        permission_level TEXT NOT NULL CHECK (permission_level IN ('owner', 'editor', 'viewer')),
+        added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE(form_id, user_id)
+      )
+    `);
+  }
+} catch (error) {
+  console.log('Form collaborators migration check completed');
+}
+
+// Create form_history table for change tracking
+db.exec(`
+  CREATE TABLE IF NOT EXISTS form_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    form_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    action TEXT NOT NULL,
+    changes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+// Migration: Ensure form_history table exists (for existing databases)
+try {
+  const historyTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='form_history'").get();
+  if (!historyTables) {
+    db.exec(`
+      CREATE TABLE form_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        form_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        action TEXT NOT NULL,
+        changes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+  }
+} catch (error) {
+  console.log('Form history migration check completed');
+}
+
 export default db;

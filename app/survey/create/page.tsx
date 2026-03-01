@@ -2,6 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import CollaboratorsModal from '@/components/CollaboratorsModal';
+import HistoryPanel from '@/components/HistoryPanel';
+
+interface FormPermission {
+  level: 'owner' | 'editor' | 'viewer' | null;
+  canEdit: boolean;
+  canDelete: boolean;
+  canView: boolean;
+  canManageCollaborators: boolean;
+}
 
 interface QuestionCondition {
   questionId: string;
@@ -63,6 +73,11 @@ export default function CreateSurveyPage() {
   const [category, setCategory] = useState<string>('other');
   const [tags, setTags] = useState<string>('');
 
+  // Collaboration state
+  const [permission, setPermission] = useState<FormPermission | null>(null);
+  const [collaboratorsModalOpen, setCollaboratorsModalOpen] = useState(false);
+  const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
+
   useEffect(() => {
     checkAuth();
   }, []);
@@ -109,6 +124,9 @@ export default function CreateSurveyPage() {
         setDeadline(form.deadline ? form.deadline.split('T')[0] : '');
         setCategory(form.category || 'other');
         setTags(form.tags ? form.tags.join(', ') : '');
+
+        // Set permission
+        setPermission(data.permission || null);
 
         // Convert questions to match the Question interface
         const convertedQuestions = form.questions.map((q: any) => ({
@@ -429,6 +447,31 @@ export default function CreateSurveyPage() {
                 </button>
               </div>
             </div>
+            {/* Collaboration buttons (only show in edit mode when permission is available) */}
+            {isEditMode && permission && (
+              <div className="flex items-center gap-2">
+                {permission.canManageCollaborators && (
+                  <button
+                    onClick={() => setCollaboratorsModalOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    협업자 관리
+                  </button>
+                )}
+                <button
+                  onClick={() => setHistoryPanelOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  변경 이력
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Survey Header */}
@@ -1241,6 +1284,26 @@ export default function CreateSurveyPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Collaborators Modal - Only show in edit mode */}
+      {isEditMode && collaboratorsModalOpen && permission?.canManageCollaborators && (
+        <CollaboratorsModal
+          isOpen={collaboratorsModalOpen}
+          onClose={() => setCollaboratorsModalOpen(false)}
+          formId={editId || ''}
+          formTitle={surveyTitle}
+        />
+      )}
+
+      {/* History Panel - Only show in edit mode */}
+      {isEditMode && historyPanelOpen && (
+        <HistoryPanel
+          isOpen={historyPanelOpen}
+          onClose={() => setHistoryPanelOpen(false)}
+          formId={editId || ''}
+          formTitle={surveyTitle}
+        />
       )}
     </div>
   );
