@@ -3,9 +3,19 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import ShareModal from '@/components/ShareModal';
+import CollaboratorsModal from '@/components/CollaboratorsModal';
+import HistoryPanel from '@/components/HistoryPanel';
 import { useDraftResponse } from '@/lib/useDraftResponse';
 import { getSessionId } from '@/lib/session';
 import { CATEGORIES } from '@/lib/categories';
+
+interface FormPermission {
+  level: 'owner' | 'editor' | 'viewer' | null;
+  canEdit: boolean;
+  canDelete: boolean;
+  canView: boolean;
+  canManageCollaborators: boolean;
+}
 
 interface QuestionCondition {
   questionId: number;
@@ -50,8 +60,10 @@ export default function SurveyDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [isOwner, setIsOwner] = useState(false);
+  const [permission, setPermission] = useState<FormPermission | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [collaboratorsModalOpen, setCollaboratorsModalOpen] = useState(false);
+  const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
   const [sessionId, setSessionId] = useState<string>('');
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [showRestoreDraftModal, setShowRestoreDraftModal] = useState(false);
@@ -125,7 +137,7 @@ export default function SurveyDetailPage() {
       if (response.ok) {
         const data = await response.json();
         setForm(data.form);
-        setIsOwner(data.isOwner || false);
+        setPermission(data.permission || null);
       } else {
         alert('설문조사를 찾을 수 없습니다.');
         router.push('/survey');
@@ -498,46 +510,74 @@ export default function SurveyDetailPage() {
               뒤로가기
             </button>
             <div className="flex items-center gap-2">
-              {isOwner && (
+              {permission && (
                 <>
-                  <button
-                    onClick={handleDeleteForm}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    삭제
-                  </button>
-                  <button
-                    onClick={() => setShareModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    초대
-                  </button>
-                  <button
-                    onClick={handleDuplicateForm}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    복제
-                  </button>
-                  <button
-                    onClick={handleSaveAsTemplate}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                    </svg>
-                    템플릿
-                  </button>
+                  {permission.canDelete && (
+                    <button
+                      onClick={handleDeleteForm}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      삭제
+                    </button>
+                  )}
+                  {permission.canManageCollaborators && (
+                    <button
+                      onClick={() => setShareModalOpen(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      초대
+                    </button>
+                  )}
+                  {permission.canManageCollaborators && (
+                    <button
+                      onClick={handleDuplicateForm}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      복제
+                    </button>
+                  )}
+                  {permission.canManageCollaborators && (
+                    <button
+                      onClick={handleSaveAsTemplate}
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                      </svg>
+                      템플릿
+                    </button>
+                  )}
+                  {permission.canManageCollaborators && (
+                    <button
+                      onClick={() => setCollaboratorsModalOpen(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                      협업자
+                    </button>
+                  )}
                 </>
               )}
+              <button
+                onClick={() => setHistoryPanelOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                이력
+              </button>
               <button
                 onClick={copyShareLink}
                 className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition"
@@ -936,10 +976,30 @@ export default function SurveyDetailPage() {
       </div>
 
       {/* Share Modal - Owner Only */}
-      {shareModalOpen && isOwner && form && (
+      {shareModalOpen && permission?.canManageCollaborators && form && (
         <ShareModal
           isOpen={shareModalOpen}
           onClose={() => setShareModalOpen(false)}
+          formId={surveyId}
+          formTitle={form.title}
+        />
+      )}
+
+      {/* Collaborators Modal - Owner Only */}
+      {collaboratorsModalOpen && permission?.canManageCollaborators && form && (
+        <CollaboratorsModal
+          isOpen={collaboratorsModalOpen}
+          onClose={() => setCollaboratorsModalOpen(false)}
+          formId={surveyId}
+          formTitle={form.title}
+        />
+      )}
+
+      {/* History Panel */}
+      {historyPanelOpen && form && (
+        <HistoryPanel
+          isOpen={historyPanelOpen}
+          onClose={() => setHistoryPanelOpen(false)}
           formId={surveyId}
           formTitle={form.title}
         />

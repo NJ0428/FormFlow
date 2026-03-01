@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import db from '@/lib/db';
+import { canEditForm, canDeleteForm, getFormPermission, PermissionLevel } from '@/lib/permissions';
+import { recordFormChange } from '@/lib/history';
 
 export async function GET(
   request: NextRequest,
@@ -34,17 +36,17 @@ export async function GET(
     const tags = db.prepare('SELECT tag FROM form_tags WHERE form_id = ?').all(formId);
     const tagArray = tags.map((t: any) => t.tag);
 
-    // Check if current user is the owner
-    let isOwner = false;
+    // Check if current user has permission
+    let permission = null;
     const token = request.cookies.get('auth-token')?.value;
     if (token) {
       const decoded = verifyToken(token);
-      if (decoded && (form as any).user_id === decoded.id) {
-        isOwner = true;
+      if (decoded) {
+        permission = getFormPermission(formId, decoded.id);
       }
     }
 
-    return NextResponse.json({ form: { ...form, questions: parsedQuestions, tags: tagArray }, isOwner });
+    return NextResponse.json({ form: { ...form, questions: parsedQuestions, tags: tagArray }, permission });
   } catch (error) {
     console.error('Get form error:', error);
     return NextResponse.json({ error: '폼을 가져올 수 없습니다.' }, { status: 500 });
@@ -70,7 +72,7 @@ export async function PUT(
     const formId = parseInt(id);
     const form = db.prepare('SELECT * FROM forms WHERE id = ?').get(formId) as any;
 
-    if (!form || form.user_id !== decoded.id) {
+    if (!form || !canEditForm(formId, decoded.id)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
@@ -148,6 +150,13 @@ export async function PUT(
       } : undefined
     }));
 
+    // Record the change
+    recordFormChange(formId, decoded.id, 'updated', {
+      title,
+      description,
+      questionCount: questions?.length || 0
+    });
+
     return NextResponse.json({ form: { ...updatedForm, questions: parsedQuestions, tags: tagArray } });
   } catch (error) {
     console.error('Update form error:', error);
@@ -174,11 +183,19 @@ export async function DELETE(
     const formId = parseInt(id);
     const form = db.prepare('SELECT * FROM forms WHERE id = ?').get(formId) as any;
 
-    if (!form || form.user_id !== decoded.id) {
+    if (!form || !canDeleteForm(formId, decoded.id)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
+    // Get form title for history before deleting
+    const formTitle = form.title;
+
     db.prepare('DELETE FROM forms WHERE id = ?').run(formId);
+
+    // Record the deletion
+    recordFormChange(formId, decoded.id, 'deleted', {
+      title: formTitle
+    });
 
     return NextResponse.json({ message: '폼이 삭제되었습니다.' });
   } catch (error) {
