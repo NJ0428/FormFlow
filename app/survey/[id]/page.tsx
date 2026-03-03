@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import ShareModal from '@/components/ShareModal';
 import CollaboratorsModal from '@/components/CollaboratorsModal';
 import HistoryPanel from '@/components/HistoryPanel';
+import NotificationSettingsModal from '@/components/NotificationSettingsModal';
 import { useDraftResponse } from '@/lib/useDraftResponse';
 import { getSessionId } from '@/lib/session';
 import { CATEGORIES } from '@/lib/categories';
@@ -63,6 +64,7 @@ export default function SurveyDetailPage() {
   const [permission, setPermission] = useState<FormPermission | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [collaboratorsModalOpen, setCollaboratorsModalOpen] = useState(false);
+  const [notificationSettingsOpen, setNotificationSettingsOpen] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
   const [sessionId, setSessionId] = useState<string>('');
   const [draftLoaded, setDraftLoaded] = useState(false);
@@ -567,6 +569,17 @@ export default function SurveyDetailPage() {
                       협업자
                     </button>
                   )}
+                  {permission.canEdit && (
+                    <button
+                      onClick={() => setNotificationSettingsOpen(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      알림 설정
+                    </button>
+                  )}
                 </>
               )}
               <button
@@ -990,6 +1003,16 @@ export default function SurveyDetailPage() {
         <CollaboratorsModal
           isOpen={collaboratorsModalOpen}
           onClose={() => setCollaboratorsModalOpen(false)}
+          formId={surveyId}
+          formTitle={form.title}
+        />
+      )}
+
+      {/* Notification Settings Modal - Owner/Editor */}
+      {notificationSettingsOpen && permission?.canEdit && form && (
+        <NotificationSettingsModal
+          isOpen={notificationSettingsOpen}
+          onClose={() => setNotificationSettingsOpen(false)}
           formId={surveyId}
           formTitle={form.title}
         />

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { getNotificationService } from '@/lib/notifications';
 
 export async function POST(
   request: NextRequest,
@@ -46,6 +47,14 @@ export async function POST(
             responded_at = CURRENT_TIMESTAMP
         WHERE form_id = ? AND email = ? AND status = 'pending'
       `).run(formId, email);
+    }
+
+    // 새 응답 알림 발송 (비동기, 에러 무시)
+    if (form.notify_on_response) {
+      const notificationService = getNotificationService();
+      notificationService.notifyNewResponse(formId, responseId).catch((err) => {
+        console.error('Failed to send new response notification:', err);
+      });
     }
 
     return NextResponse.json({ message: '응답이 제출되었습니다.' }, { status: 201 });
