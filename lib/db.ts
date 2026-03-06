@@ -356,4 +356,130 @@ try {
   console.log('Form history migration check completed');
 }
 
+// Migration: Add notification settings columns to forms table
+try {
+  const formColumns = db.pragma('table_info(forms)');
+  const formColumnNames = formColumns.map((col: any) => col.name);
+
+  if (!formColumnNames.includes('notify_on_response')) {
+    db.exec('ALTER TABLE forms ADD COLUMN notify_on_response INTEGER DEFAULT 1');
+  }
+  if (!formColumnNames.includes('notify_deadline_reminder')) {
+    db.exec('ALTER TABLE forms ADD COLUMN notify_deadline_reminder INTEGER DEFAULT 1');
+  }
+  if (!formColumnNames.includes('deadline_reminder_days')) {
+    db.exec("ALTER TABLE forms ADD COLUMN deadline_reminder_days TEXT DEFAULT '1,3'");
+  }
+  if (!formColumnNames.includes('notify_goal_achievement')) {
+    db.exec('ALTER TABLE forms ADD COLUMN notify_goal_achievement INTEGER DEFAULT 0');
+  }
+  if (!formColumnNames.includes('response_goal')) {
+    db.exec('ALTER TABLE forms ADD COLUMN response_goal INTEGER');
+  }
+  if (!formColumnNames.includes('goal_notification_sent')) {
+    db.exec('ALTER TABLE forms ADD COLUMN goal_notification_sent INTEGER DEFAULT 0');
+  }
+  if (!formColumnNames.includes('last_notification_at')) {
+    db.exec('ALTER TABLE forms ADD COLUMN last_notification_at DATETIME');
+  }
+} catch (error) {
+  console.log('Notification settings migration check completed');
+}
+
+// Create notification_history table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS notification_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    form_id INTEGER NOT NULL,
+    notification_type TEXT NOT NULL,
+    recipient_email TEXT NOT NULL,
+    recipient_name TEXT,
+    sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status TEXT DEFAULT 'sent',
+    error_message TEXT,
+    FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE
+  )
+`);
+
+// Create index for notification_history
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_notification_history_form_sent
+  ON notification_history(form_id, sent_at)
+`);
+
+// Migration: Ensure notification_history table exists
+try {
+  const notifHistoryTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='notification_history'").get();
+  if (!notifHistoryTables) {
+    db.exec(`
+      CREATE TABLE notification_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        form_id INTEGER NOT NULL,
+        notification_type TEXT NOT NULL,
+        recipient_email TEXT NOT NULL,
+        recipient_name TEXT,
+        sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        status TEXT DEFAULT 'sent',
+        error_message TEXT,
+        FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE
+      )
+    `);
+    db.exec(`
+      CREATE INDEX idx_notification_history_form_sent
+      ON notification_history(form_id, sent_at)
+    `);
+  }
+} catch (error) {
+  console.log('Notification history migration check completed');
+}
+
+// Create scheduled_jobs table for background tasks
+db.exec(`
+  CREATE TABLE IF NOT EXISTS scheduled_jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    form_id INTEGER NOT NULL,
+    job_type TEXT NOT NULL,
+    scheduled_at DATETIME NOT NULL,
+    status TEXT DEFAULT 'pending',
+    attempts INTEGER DEFAULT 0,
+    last_attempt_at DATETIME,
+    error_message TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE
+  )
+`);
+
+// Create index for scheduled_jobs
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_scheduled_jobs_status_scheduled
+  ON scheduled_jobs(status, scheduled_at)
+`);
+
+// Migration: Ensure scheduled_jobs table exists
+try {
+  const scheduledJobsTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='scheduled_jobs'").get();
+  if (!scheduledJobsTables) {
+    db.exec(`
+      CREATE TABLE scheduled_jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        form_id INTEGER NOT NULL,
+        job_type TEXT NOT NULL,
+        scheduled_at DATETIME NOT NULL,
+        status TEXT DEFAULT 'pending',
+        attempts INTEGER DEFAULT 0,
+        last_attempt_at DATETIME,
+        error_message TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE
+      )
+    `);
+    db.exec(`
+      CREATE INDEX idx_scheduled_jobs_status_scheduled
+      ON scheduled_jobs(status, scheduled_at)
+    `);
+  }
+} catch (error) {
+  console.log('Scheduled jobs migration check completed');
+}
+
 export default db;
