@@ -46,7 +46,24 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ form: { ...form, questions: parsedQuestions, tags: tagArray }, permission });
+    // Include branding data
+    const branding = {
+      logo_url: form.logo_url || null,
+      primary_color: form.primary_color || '#7C3AED',
+      secondary_color: form.secondary_color || '#4F46E5',
+      background_color: form.background_color || '#FFFFFF',
+      text_color: form.text_color || '#1F2937',
+      background_image_url: form.background_image_url || null,
+      background_image_position: form.background_image_position || 'center',
+      background_image_size: form.background_image_size || 'cover',
+      completion_message: form.completion_message || '응답해 주셔서 감사합니다!',
+      completion_image_url: form.completion_image_url || null,
+      completion_button_text: form.completion_button_text || '목록으로',
+      completion_button_url: form.completion_button_url || null,
+      show_completion_image: form.show_completion_image === 1
+    };
+
+    return NextResponse.json({ form: { ...form, questions: parsedQuestions, tags: tagArray, branding }, permission });
   } catch (error) {
     console.error('Get form error:', error);
     return NextResponse.json({ error: '폼을 가져올 수 없습니다.' }, { status: 500 });

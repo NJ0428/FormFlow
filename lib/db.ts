@@ -482,4 +482,52 @@ try {
   console.log('Scheduled jobs migration check completed');
 }
 
+// Migration: Add branding columns to forms table for customization
+try {
+  const formColumns = db.pragma('table_info(forms)');
+  const formColumnNames = formColumns.map((col: any) => col.name);
+
+  if (!formColumnNames.includes('logo_url')) {
+    db.exec('ALTER TABLE forms ADD COLUMN logo_url TEXT');
+  }
+  if (!formColumnNames.includes('primary_color')) {
+    db.exec("ALTER TABLE forms ADD COLUMN primary_color TEXT DEFAULT '#7C3AED'");
+  }
+  if (!formColumnNames.includes('secondary_color')) {
+    db.exec("ALTER TABLE forms ADD COLUMN secondary_color TEXT DEFAULT '#4F46E5'");
+  }
+  if (!formColumnNames.includes('background_color')) {
+    db.exec("ALTER TABLE forms ADD COLUMN background_color TEXT DEFAULT '#FFFFFF'");
+  }
+  if (!formColumnNames.includes('text_color')) {
+    db.exec("ALTER TABLE forms ADD COLUMN text_color TEXT DEFAULT '#1F2937'");
+  }
+  if (!formColumnNames.includes('background_image_url')) {
+    db.exec('ALTER TABLE forms ADD COLUMN background_image_url TEXT');
+  }
+  if (!formColumnNames.includes('background_image_position')) {
+    db.exec("ALTER TABLE forms ADD COLUMN background_image_position TEXT DEFAULT 'center'");
+  }
+  if (!formColumnNames.includes('background_image_size')) {
+    db.exec("ALTER TABLE forms ADD COLUMN background_image_size TEXT DEFAULT 'cover'");
+  }
+  if (!formColumnNames.includes('completion_message')) {
+    db.exec("ALTER TABLE forms ADD COLUMN completion_message TEXT DEFAULT '응답해 주셔서 감사합니다!'");
+  }
+  if (!formColumnNames.includes('completion_image_url')) {
+    db.exec('ALTER TABLE forms ADD COLUMN completion_image_url TEXT');
+  }
+  if (!formColumnNames.includes('completion_button_text')) {
+    db.exec("ALTER TABLE forms ADD COLUMN completion_button_text TEXT DEFAULT '목록으로'");
+  }
+  if (!formColumnNames.includes('completion_button_url')) {
+    db.exec('ALTER TABLE forms ADD COLUMN completion_button_url TEXT');
+  }
+  if (!formColumnNames.includes('show_completion_image')) {
+    db.exec('ALTER TABLE forms ADD COLUMN show_completion_image INTEGER DEFAULT 0');
+  }
+} catch (error) {
+  console.log('Branding columns migration check completed');
+}
+
 export default db;

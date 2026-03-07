@@ -37,6 +37,22 @@ interface Question {
   sliderUnit?: string;
 }
 
+interface Branding {
+  logo_url: string | null;
+  primary_color: string;
+  secondary_color: string;
+  background_color: string;
+  text_color: string;
+  background_image_url: string | null;
+  background_image_position: 'center' | 'top' | 'bottom' | 'left' | 'right';
+  background_image_size: 'cover' | 'contain' | 'auto';
+  completion_message: string;
+  completion_image_url: string | null;
+  completion_button_text: string;
+  completion_button_url: string | null;
+  show_completion_image: boolean;
+}
+
 interface Form {
   id: number;
   title: string;
@@ -48,6 +64,7 @@ interface Form {
   questions: Question[];
   category?: string;
   tags?: string[];
+  branding?: Branding;
 }
 
 export default function SurveyDetailPage() {
@@ -349,9 +366,10 @@ export default function SurveyDetailPage() {
       });
 
       if (response.ok) {
-        setSubmitted(true);
         // Delete draft after successful submission
         await deleteDraft();
+        // Redirect to completion page
+        router.push(`/survey/${surveyId}/complete`);
       } else {
         const error = await response.json();
         alert(error.error || '제출에 실패했습니다.');
@@ -496,8 +514,33 @@ export default function SurveyDetailPage() {
     );
   }
 
+  // Generate branding styles
+  const getBrandingStyles = () => {
+    if (!form.branding) return {};
+
+    const styles: Record<string, string> = {};
+
+    if (form.branding.background_image_url) {
+      styles.backgroundImage = `url(${form.branding.background_image_url})`;
+      styles.backgroundPosition = form.branding.background_image_position;
+      styles.backgroundSize = form.branding.background_image_size;
+      styles.backgroundRepeat = 'no-repeat';
+    } else if (form.branding.background_color) {
+      styles.backgroundColor = form.branding.background_color;
+    }
+
+    return styles;
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+    <div
+      className="min-h-screen"
+      style={{
+        ...getBrandingStyles(),
+        backgroundColor: form.branding?.background_color || '',
+        color: form.branding?.text_color || ''
+      }}
+    >
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm">
         <div className="container mx-auto px-4 py-4">
@@ -623,8 +666,11 @@ export default function SurveyDetailPage() {
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                 <div
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${getProgress()}%` }}
+                  className="h-2.5 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${getProgress()}%`,
+                    backgroundColor: form.branding?.primary_color || '#7C3AED'
+                  }}
                 ></div>
               </div>
             </div>
@@ -635,8 +681,25 @@ export default function SurveyDetailPage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
+          {/* Logo */}
+          {form.branding?.logo_url && (
+            <div className="mb-6 flex justify-center">
+              <img
+                src={form.branding.logo_url}
+                alt="Logo"
+                className="max-h-24 object-contain"
+              />
+            </div>
+          )}
+
           {/* Survey Header */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-6">
+          <div
+            className="rounded-2xl shadow-xl p-8 mb-6"
+            style={{
+              backgroundColor: form.branding?.background_color || '#ffffff',
+              color: form.branding?.text_color || '#1f2937'
+            }}
+          >
             <div className="mb-4 flex items-center gap-2 flex-wrap">
               {form.category && (
                 <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium rounded-full">
@@ -965,7 +1028,10 @@ export default function SurveyDetailPage() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-3 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              style={{
+                backgroundColor: form.branding?.primary_color || '#7C3AED'
+              }}
             >
               {submitting ? (
                 <>

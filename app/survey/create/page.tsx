@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CollaboratorsModal from '@/components/CollaboratorsModal';
 import HistoryPanel from '@/components/HistoryPanel';
+import BrandingSettingsModal from '@/components/BrandingSettingsModal';
 
 interface FormPermission {
   level: 'owner' | 'editor' | 'viewer' | null;
@@ -77,6 +78,7 @@ export default function CreateSurveyPage() {
   const [permission, setPermission] = useState<FormPermission | null>(null);
   const [collaboratorsModalOpen, setCollaboratorsModalOpen] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
+  const [brandingModalOpen, setBrandingModalOpen] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -450,6 +452,17 @@ export default function CreateSurveyPage() {
             {/* Collaboration buttons (only show in edit mode when permission is available) */}
             {isEditMode && permission && (
               <div className="flex items-center gap-2">
+                {permission.canEdit && (
+                  <button
+                    onClick={() => setBrandingModalOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                    </svg>
+                    브랜딩
+                  </button>
+                )}
                 {permission.canManageCollaborators && (
                   <button
                     onClick={() => setCollaboratorsModalOpen(true)}
@@ -1301,6 +1314,16 @@ export default function CreateSurveyPage() {
         <HistoryPanel
           isOpen={historyPanelOpen}
           onClose={() => setHistoryPanelOpen(false)}
+          formId={editId || ''}
+          formTitle={surveyTitle}
+        />
+      )}
+
+      {/* Branding Modal - Only show in edit mode */}
+      {isEditMode && brandingModalOpen && permission?.canEdit && (
+        <BrandingSettingsModal
+          isOpen={brandingModalOpen}
+          onClose={() => setBrandingModalOpen(false)}
           formId={editId || ''}
           formTitle={surveyTitle}
         />
