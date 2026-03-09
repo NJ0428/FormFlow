@@ -49,7 +49,12 @@ export default function LoginPage() {
             className="w-full h-full object-cover mix-blend-overlay"
           />
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-8">
-            <h1 className="text-5xl font-bold mb-4">FormFlow</h1>
+            <div
+              className="cursor-pointer hover:scale-105 transition-transform"
+              onClick={() => router.push('/')}
+            >
+              <h1 className="text-5xl font-bold mb-4">FormFlow</h1>
+            </div>
             <p className="text-xl text-center opacity-90">간편한 폼 관리의 시작</p>
             <p className="text-sm mt-4 opacity-75">효율적인 업무 흐름을 경험해보세요</p>
           </div>

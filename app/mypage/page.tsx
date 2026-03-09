@@ -314,9 +314,22 @@ export default function MyPage() {
         {/* 헤더 */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 mb-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">마이페이지</h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-1">{user?.email}</p>
+            <div className="flex items-center gap-4">
+              <div
+                className="flex items-center gap-2 cursor-pointer"
+                onClick={() => router.push('/')}
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">F</span>
+                </div>
+                <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  FormFlow
+                </span>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">마이페이지</h1>
+                <p className="text-gray-600 dark:text-gray-300 mt-1">{user?.email}</p>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle />
